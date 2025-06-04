@@ -1,19 +1,10 @@
 module Swaymsg where
 
-import Prelude
+import Data.Aeson (Value)
+import Data.Aeson qualified as Aeson
+import Data.Maybe (fromMaybe, isJust)
 import Region
-
-newtype Nodes a = Nodes { nodes :: [a] }
-    deriving stock (Generic)
-    deriving anyclass (FromJSON)
-
-data Con = WindowCon Window | Con (Nodes Con)
-    deriving stock (Generic)
-    deriving anyclass (FromJSON)
-
-windows :: Con -> [Window]
-windows (WindowCon w) = pure w
-windows (Con (Nodes {nodes})) = mconcat $ windows <$> nodes
+import Prelude
 
 data Rect = Rect
     { x :: Int
@@ -24,22 +15,40 @@ data Rect = Rect
     deriving stock (Generic, Show)
     deriving anyclass (FromJSON)
 
-data Window = Window
-    { pid :: Int
-    , visible :: Bool
+data Tree = Tree
+    { nodes :: [Tree]
+    , floatingNodes :: [Tree]
     , rect :: Rect
+    , pid :: Maybe Int
+    , visible :: Maybe Bool
+    , name :: Maybe Text
     }
-    deriving stock (Generic, Show)
-    deriving anyclass (FromJSON)
+    deriving stock (Generic)
 
-windowToRegion :: Window -> Region
-windowToRegion Window{rect = Rect{x, y, width = w, height = h}} = Region{..}
+instance FromJSON Tree where
+    parseJSON =
+        Aeson.genericParseJSON
+            Aeson.defaultOptions{Aeson.fieldLabelModifier = Aeson.camelTo2 '_'}
 
-getWindows :: IO [Window]
-getWindows = windows <$> jsonCmd ["swaymsg", "--raw", "--type", "get_tree"]
+windows :: Tree -> [Tree]
+windows t@Tree{nodes, floatingNodes} = [t | isWindow t] <> mconcat (windows <$> nodes <> floatingNodes)
+  where
+    isWindow Tree{pid, visible} = isJust pid && isJust visible
 
-getVisibleWindows :: IO [Window]
-getVisibleWindows = filter visible <$> getWindows
+treeToRegion :: Tree -> Region
+treeToRegion Tree{rect = Rect{x, y, width = w, height = h}} = Region{..}
+
+getTree :: IO Tree
+getTree = jsonCmd ["swaymsg", "--raw", "--type", "get_tree"] ""
+
+getWindows :: IO [Tree]
+getWindows = windows <$> getTree
+
+getVisibleWindows :: IO [Tree]
+getVisibleWindows = filter (fromMaybe False . visible) <$> getWindows
 
 getVisibleWindowRegions :: IO [Region]
-getVisibleWindowRegions = windowToRegion <$$> getVisibleWindows
+getVisibleWindowRegions = treeToRegion <$$> getVisibleWindows
+
+getScreenRegion :: IO Region
+getScreenRegion = treeToRegion <$> getTree

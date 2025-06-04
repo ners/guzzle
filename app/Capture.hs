@@ -1,10 +1,10 @@
 module Capture where
 
-import Selection
+import Region
 import Prelude
 
 data CaptureArgs = CaptureArgs
     {}
 
-capture :: CaptureArgs -> Selection -> IO ByteString
+capture :: CaptureArgs -> Region -> IO ByteString
 capture _ _ = pure ""

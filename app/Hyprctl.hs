@@ -1,14 +1,14 @@
 module Hyprctl where
 
-import Prelude
 import Region
+import Prelude
 
-newtype Workspace = Workspace { id :: Int }
+newtype Workspace = Workspace {id :: Int}
     deriving stock (Generic)
     deriving newtype (Eq, Show)
     deriving anyclass (FromJSON)
 
-newtype Monitor = Monitor { activeWorkspace :: Workspace }
+newtype Monitor = Monitor {activeWorkspace :: Workspace}
     deriving stock (Generic)
     deriving newtype (Eq)
     deriving anyclass (FromJSON)
@@ -23,13 +23,13 @@ data Window = Window
     deriving anyclass (FromJSON)
 
 getMonitors :: IO [Monitor]
-getMonitors = jsonCmd ["hyprctl", "-j", "monitors"]
+getMonitors = jsonCmd ["hyprctl", "-j", "monitors"] ""
 
 getWindows :: IO [Window]
-getWindows = jsonCmd ["hyprctl", "-j", "clients"]
+getWindows = jsonCmd ["hyprctl", "-j", "clients"] ""
 
 windowToRegion :: Window -> Region
-windowToRegion Window{at = (x,y), size=(w,h)} = Region{..}
+windowToRegion Window{at = (x, y), size = (w, h)} = Region{..}
 
 getVisibleWindows :: IO [Window]
 getVisibleWindows = do

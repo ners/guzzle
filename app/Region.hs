@@ -1,9 +1,9 @@
 module Region where
 
-import Prelude
-import Text.Read
 import Text.ParserCombinators.ReadP qualified as ReadP
 import Text.ParserCombinators.ReadPrec qualified as ReadPrec
+import Text.Read
+import Prelude
 
 data Region = Region
     { x :: Int

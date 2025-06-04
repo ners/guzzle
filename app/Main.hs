@@ -1,10 +1,12 @@
 module Main where
 
 import Capture
+import Hyprctl qualified
 import Selection
 import Sink
+import Slurp qualified
+import Swaymsg qualified
 import Prelude
-import Hyprctl qualified
 
 data Args = Args
     { selectionArgs :: SelectionArgs
@@ -14,10 +16,9 @@ data Args = Args
 
 main :: IO ()
 main = do
-    mapM_ print =<< Hyprctl.getVisibleWindows
     let Args{..} =
             Args
-                { selectionArgs = SelectionArgs{}
+                { selectionArgs = SelectionArgs{selectionMode = Output}
                 , captureArgs = CaptureArgs{}
                 , sinkArgs = SinkArgs{}
                 }
