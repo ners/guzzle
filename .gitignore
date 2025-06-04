@@ -1,0 +1,12 @@
+# ignore
+*.cabal
+.*
+dist-newstyle
+result
+result-*
+tags
+
+# don't ignore
+!.gitignore
+!.github
+!.editorconfig
