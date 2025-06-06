@@ -1,4 +1,4 @@
-inputs: { config, lib, ... }:
+inputs: { config, build, lib, pkgs, ... }:
 
 let
   sourceFilter = root: with lib.fileset; toSource {
@@ -66,15 +66,36 @@ in
         "ansi-terminal"
         "bytestring"
         "extra"
-        "mtl"
         "optparse-applicative"
         "text"
-        "time"
-        "process"
         "typed-process"
       ];
     };
   };
+  outputs.packages =
+    let
+      unwrapped = build.packages.dev.${pname}.package.overrideAttrs {
+        pname = "${pname}-unwrapped";
+      };
+      wrapped = 
+        pkgs.runCommand "${pname}-${unwrapped.version}"
+          {
+            nativeBuildInputs = with pkgs; [ makeWrapper ];
+            inherit pname;
+            inherit (unwrapped) version meta;
+          } ''
+          makeWrapper ${lib.getExe unwrapped} $out/bin/${pname} --set PATH "${lib.makeBinPath runtimeDeps}";
+        '';
+      runtimeDeps = with pkgs; [
+        grim
+        slurp
+        wf-recorder
+      ];
+    in {
+      default = wrapped;
+      ${pname} = wrapped;
+      "${pname}-unwrapped" = unwrapped;
+    };
   envs.dev = {
     env.DIRENV_IN_ENVRC = "";
     setup-pre = /*bash*/ ''
