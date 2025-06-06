@@ -1,6 +1,5 @@
 module Swaymsg where
 
-import Data.Aeson (Value)
 import Data.Aeson qualified as Aeson
 import Data.Maybe (fromMaybe, isJust)
 import Region

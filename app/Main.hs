@@ -1,11 +1,17 @@
 module Main where
 
 import Capture
-import Hyprctl qualified
+import Options.Applicative
+    ( Parser
+    , ParserInfo
+    , execParser
+    , fullDesc
+    , helper
+    , info
+    , progDesc
+    )
 import Selection
 import Sink
-import Slurp qualified
-import Swaymsg qualified
 import Prelude
 
 data Args = Args
@@ -14,12 +20,17 @@ data Args = Args
     , sinkArgs :: SinkArgs
     }
 
+parseArgs :: Parser Args
+parseArgs = do
+    selectionArgs <- parseSelectionArgs
+    let captureArgs = CaptureArgs{}
+    let sinkArgs = SinkArgs{}
+    pure Args{..}
+
+parserInfo :: ParserInfo Args
+parserInfo = info (helper <*> parseArgs) (fullDesc <> progDesc "guzzle")
+
 main :: IO ()
 main = do
-    let Args{..} =
-            Args
-                { selectionArgs = SelectionArgs{selectionMode = Output}
-                , captureArgs = CaptureArgs{}
-                , sinkArgs = SinkArgs{}
-                }
+    Args{..} <- execParser parserInfo
     selection selectionArgs >>= capture captureArgs >>= sink sinkArgs
