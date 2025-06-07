@@ -22,9 +22,9 @@ data Args = Args
 
 parseArgs :: Parser Args
 parseArgs = do
+    sinkArgs <- parseSinkArgs
     selectionArgs <- parseSelectionArgs
-    let captureArgs = CaptureArgs{}
-    let sinkArgs = SinkArgs{}
+    captureArgs <- parseCaptureArgs
     pure Args{..}
 
 parserInfo :: ParserInfo Args

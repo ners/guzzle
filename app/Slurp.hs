@@ -5,7 +5,7 @@ import Region
 import Prelude
 
 slurp :: [Text] -> Text -> IO Region
-slurp p t = read . fromText <$> cmd ("slurp" :| "-d" : p) t
+slurp p t = read . fromText <$> textCmd ("slurp" :| "-d" : p) (textInput t)
 
 selectNewRegion :: IO Region
 selectNewRegion = slurp [] ""

@@ -8,6 +8,12 @@ let
   pname = "guzzle";
   defaultGhc = inputs.nixpkgs.legacyPackages.${config.system}.haskellPackages.ghc;
   defaultGhcVersion = "ghc" + lib.replaceStrings [ "." ] [ "" ] defaultGhc.version;
+  runtimeDeps = with pkgs; [
+    grim
+    slurp
+    wf-recorder
+    wl-clipboard
+  ];
 in
 {
   compiler = defaultGhcVersion;
@@ -68,6 +74,7 @@ in
         "extra"
         "optparse-applicative"
         "text"
+        "time"
         "typed-process"
       ];
     };
@@ -86,11 +93,6 @@ in
           } ''
           makeWrapper ${lib.getExe unwrapped} $out/bin/${pname} --set PATH "${lib.makeBinPath runtimeDeps}";
         '';
-      runtimeDeps = with pkgs; [
-        grim
-        slurp
-        wf-recorder
-      ];
     in {
       default = wrapped;
       ${pname} = wrapped;
@@ -102,7 +104,6 @@ in
       NIX_MONITOR=disable nix run .#gen-cabal
       NIX_MONITOR=disable nix run .#tags
     '';
-    buildInputs = with config.pkgs; [
-    ];
+    buildInputs = runtimeDeps;
   };
 }

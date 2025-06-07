@@ -1,15 +1,19 @@
 module Prelude
     ( module Prelude
+    , module Control.Monad
     , module Data.Aeson
     , module Data.ByteString
+    , module Data.ByteString.Lazy
     , module Data.Functor
     , module Data.List.NonEmpty
     , module Data.String
     , module Data.Text
     , module GHC.Generics
+    , module System.Process.Typed
     )
 where
 
+import Control.Monad ((<=<), (>=>))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson qualified as Aeson
 import Data.ByteString (ByteString)
@@ -26,7 +30,7 @@ import GHC.Generics (Generic)
 import System.Console.ANSI
 import System.Exit (exitFailure, exitWith)
 import System.IO (stderr)
-import System.Process.Typed (ExitCode (..))
+import System.Process.Typed (ExitCode (..), StreamSpec, nullStream)
 import System.Process.Typed qualified as Process
 import "base" Prelude hiding (unzip)
 
@@ -68,29 +72,34 @@ printDebug t = do
     Text.hPutStrLn stderr t
     hSetSGR stderr [Reset]
 
-textInput :: Text -> Process.StreamSpec 'Process.STInput ()
-textInput "" = Process.nullStream
-textInput t = Process.byteStringInput . LazyByteString.fromStrict . Text.encodeUtf8 $ t
+textInput :: Text -> StreamSpec 'Process.STInput ()
+textInput = Process.byteStringInput . LazyByteString.fromStrict . Text.encodeUtf8
 
-cmd' :: NonEmpty Text -> Text -> IO (ExitCode, LazyByteString, LazyByteString)
-cmd' (x :| xs) (textInput -> input) = do
+cmd'
+    :: NonEmpty Text
+    -> StreamSpec 'Process.STInput ()
+    -> IO (ExitCode, LazyByteString, LazyByteString)
+cmd' (x :| xs) input = do
     printInfo $ Text.unwords (x : xs)
     (exitCode, out, err) <-
         Process.readProcess . Process.setStdin input $
             Process.proc (Text.unpack x) (Text.unpack <$> xs)
     pure (exitCode, out, err)
 
-cmd :: NonEmpty Text -> Text -> IO Text
+cmd :: NonEmpty Text -> StreamSpec 'Process.STInput () -> IO LazyByteString
 cmd xs input =
     cmd' xs input >>= \case
-        (ExitSuccess, out, _) -> pure . Text.decodeUtf8 . LazyByteString.toStrict $ out
+        (ExitSuccess, out, _) -> pure out
         (code, _, _) -> exitWith code
 
-jsonCmd :: (FromJSON a) => NonEmpty Text -> Text -> IO a
+textCmd :: NonEmpty Text -> StreamSpec 'Process.STInput () -> IO Text
+textCmd xs input = Text.decodeUtf8 . LazyByteString.toStrict <$> cmd xs input
+
+jsonCmd
+    :: (FromJSON a) => NonEmpty Text -> StreamSpec 'Process.STInput () -> IO a
 jsonCmd xs input =
-    cmd' xs input >>= \case
-        (ExitSuccess, out, _) -> either (fatalError . fromString) pure . Aeson.eitherDecode $ out
-        (code, _, _) -> exitWith code
+    either (fatalError . fromString) pure . Aeson.eitherDecode
+        =<< cmd xs input
 
-cmd_ :: NonEmpty Text -> Text -> IO ()
+cmd_ :: NonEmpty Text -> StreamSpec 'Process.STInput () -> IO ()
 cmd_ = (void .) . cmd
