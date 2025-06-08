@@ -19,6 +19,14 @@ in
   compiler = defaultGhcVersion;
   ghcVersions = [ defaultGhcVersion ];
   systems = builtins.attrNames inputs.nixpkgs.legacyPackages;
+  overrides = {super, ...}: {
+    optparse-applicative = super.optparse-applicative.overrideAttrs (attrs: {
+      patchPhase = ''
+        ${attrs.patchPhase or ""}
+        sed -i '/when (isArg.*cut$/d' src/Options/Applicative/Common.hs
+      '';
+    });
+  };
   cabal = {
     author = "ners";
     build-type = "Simple";

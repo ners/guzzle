@@ -3,6 +3,7 @@ module Sink where
 import Content
 import Data.ByteString.Lazy qualified as LazyByteString
 import Data.Time (getCurrentTime)
+import Debug.Trace (trace)
 import Options.Applicative
     ( Alternative ((<|>))
     , Parser
@@ -14,7 +15,6 @@ import Options.Applicative
 import System.IO (hFlush, stdout)
 import WlCopy qualified
 import Prelude
-import Debug.Trace (trace)
 
 data SinkAction
     = Copy

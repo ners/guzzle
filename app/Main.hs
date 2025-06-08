@@ -4,12 +4,15 @@ import Capture
 import Options.Applicative
     ( Parser
     , ParserInfo
-    , execParser
+    , ParserPrefs (..)
+    , customExecParser
     , fullDesc
     , helper
     , info
     , progDesc
     )
+import Options.Applicative.Builder (defaultPrefs)
+import Options.Applicative.Types (Backtracking (..))
 import Selection
 import Sink
 import Prelude
@@ -32,5 +35,5 @@ parserInfo = info (helper <*> parseArgs) (fullDesc <> progDesc "guzzle")
 
 main :: IO ()
 main = do
-    Args{..} <- execParser parserInfo
+    Args{..} <- customExecParser defaultPrefs{prefBacktrack = Backtrack} parserInfo
     selection selectionArgs >>= capture captureArgs >>= sink sinkArgs
