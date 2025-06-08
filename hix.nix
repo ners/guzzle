@@ -19,17 +19,19 @@ in
   compiler = defaultGhcVersion;
   ghcVersions = [ defaultGhcVersion ];
   systems = builtins.attrNames inputs.nixpkgs.legacyPackages;
-  overrides = {hackage, overrideAttrs, jailbreak, ...}: {
-    tasty = jailbreak;
-    tasty-quickcheck = jailbreak;
-    optparse-applicative =
-      (hackage "0.19.0.0" "sha256-dhqvRILfdbpYPMxC+WpAyO0KUfq2nLopGk1NdSN2SDM=")
-      (overrideAttrs (attrs: {
-        patches = [
-          ./arg-backtracking.patch
-        ];
-      }));
-  };
+  overrides = { hackage, overrideAttrs, jailbreak, notest, ... }:
+    {
+      tasty = jailbreak;
+      tasty-quickcheck = jailbreak;
+      optparse-applicative =
+        notest
+          ((overrideAttrs (attrs: {
+            patches = [
+              ./arg-backtracking.patch
+            ];
+          }))
+            (hackage "0.19.0.0" "sha256-dhqvRILfdbpYPMxC+WpAyO0KUfq2nLopGk1NdSN2SDM="));
+    };
   cabal = {
     author = "ners";
     build-type = "Simple";
@@ -95,7 +97,7 @@ in
       unwrapped = build.packages.dev.${pname}.package.overrideAttrs {
         pname = "${pname}-unwrapped";
       };
-      wrapped = 
+      wrapped =
         pkgs.runCommand "${pname}-${unwrapped.version}"
           {
             nativeBuildInputs = with pkgs; [ makeWrapper ];
@@ -104,7 +106,8 @@ in
           } ''
           makeWrapper ${lib.getExe unwrapped} $out/bin/${pname} --set PATH "${lib.makeBinPath runtimeDeps}";
         '';
-    in {
+    in
+    {
       default = wrapped;
       ${pname} = wrapped;
       "${pname}-unwrapped" = unwrapped;
