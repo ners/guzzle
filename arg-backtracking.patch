@@ -1,0 +1,22 @@
+diff --git a/src/Options/Applicative/Common.hs b/src/Options/Applicative/Common.hs
+index 89bdb26..d27c82e 100644
+--- a/src/Options/Applicative/Common.hs
++++ b/src/Options/Applicative/Common.hs
+@@ -61,6 +61,8 @@ import Prelude
+ 
+ import Options.Applicative.Internal
+ import Options.Applicative.Types
++import Control.Monad.Trans.Except
++import Control.Monad.Trans.Reader
+ 
+ showOption :: OptName -> String
+ showOption (OptLong n) = "--" ++ n
+@@ -181,7 +183,7 @@ searchArg prefs arg =
+             return $ infoParser subp
+ 
+       ArgReader rdr ->
+-        fmap pure . lift . lift $ runReadM (crReader rdr) arg
++        either (const mzero) (pure . pure) . runExcept . flip runReaderT arg . unReadM . crReader $ rdr
+ 
+       _ ->
+         mzero

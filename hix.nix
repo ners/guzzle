@@ -19,13 +19,16 @@ in
   compiler = defaultGhcVersion;
   ghcVersions = [ defaultGhcVersion ];
   systems = builtins.attrNames inputs.nixpkgs.legacyPackages;
-  overrides = {super, ...}: {
-    optparse-applicative = super.optparse-applicative.overrideAttrs (attrs: {
-      patchPhase = ''
-        ${attrs.patchPhase or ""}
-        sed -i '/when (isArg.*cut$/d' src/Options/Applicative/Common.hs
-      '';
-    });
+  overrides = {hackage, overrideAttrs, jailbreak, ...}: {
+    tasty = jailbreak;
+    tasty-quickcheck = jailbreak;
+    optparse-applicative =
+      (hackage "0.19.0.0" "sha256-dhqvRILfdbpYPMxC+WpAyO0KUfq2nLopGk1NdSN2SDM=")
+      (overrideAttrs (attrs: {
+        patches = [
+          ./arg-backtracking.patch
+        ];
+      }));
   };
   cabal = {
     author = "ners";
