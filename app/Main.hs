@@ -13,9 +13,10 @@ import Options.Applicative
     )
 import Options.Applicative.Builder (defaultPrefs)
 import Options.Applicative.Types (Backtracking (..))
+import Persistence (createNamedRegionTable)
+import Prelude
 import Selection
 import Sink
-import Prelude
 
 data Args = Args
     { selectionArgs :: SelectionArgs
@@ -35,5 +36,6 @@ parserInfo = info (helper <*> parseArgs) (fullDesc <> progDesc "guzzle")
 
 main :: IO ()
 main = do
+    createNamedRegionTable
     Args{..} <- customExecParser defaultPrefs{prefBacktrack = Backtrack} parserInfo
     selection selectionArgs >>= capture captureArgs >>= sink sinkArgs

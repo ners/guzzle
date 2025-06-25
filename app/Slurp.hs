@@ -7,6 +7,9 @@ import Prelude
 slurp :: [Text] -> Text -> IO Region
 slurp p t = read . fromText <$> textCmd ("slurp" :| "-d" : p) (textInput t)
 
+selectNewOrExistingRegion :: [Region] -> IO Region
+selectNewOrExistingRegion = slurp [] . Text.unlines . fmap ishow
+
 selectNewRegion :: IO Region
 selectNewRegion = slurp [] ""
 

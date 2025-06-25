@@ -11,6 +11,7 @@ data Region = Region
     , w :: Int
     , h :: Int
     }
+    deriving stock (Eq, Generic)
 
 instance Read Region where
     readPrec = do
