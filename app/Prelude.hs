@@ -104,4 +104,7 @@ jsonCmd xs input =
         =<< cmd xs input
 
 cmd_ :: NonEmpty Text -> StreamSpec 'Process.STInput () -> IO ()
-cmd_ = (void .) . cmd
+cmd_ (x :| xs) input = do
+    printInfo $ Text.unwords (x : xs)
+    Process.runProcess_ . Process.setStdin input $
+        Process.proc (Text.unpack x) (Text.unpack <$> xs)
