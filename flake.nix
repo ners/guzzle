@@ -54,6 +54,7 @@
               })
             ];
           };
+          ${pname} = final.haskellPackages.${pname};
         })
       ];
     in
@@ -65,7 +66,7 @@
       let pkgs = pkgs'.extend overlay; in {
         formatter.${system} = pkgs.nixpkgs-fmt;
         legacyPackages.${system} = pkgs;
-        packages.${system}.default = pkgs.haskellPackages.${pname};
+        packages.${system}.default = pkgs.${pname};
         devShells.${system}.default = pkgs.haskellPackages.shellFor {
           packages = ps: [ ps.${pname} ];
           nativeBuildInputs = with pkgs.haskellPackages; [
