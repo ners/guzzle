@@ -22,24 +22,35 @@
           root;
       };
       pname = "guzzle";
+      runtimeDependenciesFor = pkgs: with pkgs; [
+        grim
+        slurp
+        wf-recorder
+        wl-clipboard
+      ];
       overlay = lib.composeManyExtensions [
         (final: prev: {
           haskell = prev.haskell // {
             packageOverrides = lib.composeManyExtensions [
               prev.haskell.packageOverrides
               (hfinal: hprev: with prev.haskell.lib.compose; {
-                ${pname} = hfinal.callCabal2nix pname (sourceFilter ./.) {
+                ${pname} = (hfinal.callCabal2nix pname (sourceFilter ./.) {
                   optparse-applicative = lib.pipe { } [
-                    (hprev.callHackageDirect
-                      {
-                        pkg = "optparse-applicative";
-                        ver = "0.19.0.0";
-                        sha256 = "sha256-dhqvRILfdbpYPMxC+WpAyO0KUfq2nLopGk1NdSN2SDM=";
-                      })
+                    (hprev.callHackageDirect {
+                      pkg = "optparse-applicative";
+                      ver = "0.19.0.0";
+                      sha256 = "sha256-dhqvRILfdbpYPMxC+WpAyO0KUfq2nLopGk1NdSN2SDM=";
+                    })
                     (appendPatch ./arg-backtracking.patch)
                     dontCheck
                   ];
-                };
+                }).overrideAttrs (attrs: {
+                  nativeBuildInputs = (attrs.nativeBuildInputs or [ ]) ++ [ prev.makeWrapper ];
+                  postInstall = ''
+                    ${attrs.postInstall or ""}
+                    wrapProgram $out/bin/${pname} --prefix PATH : "${lib.makeBinPath (runtimeDependenciesFor prev)}"
+                  '';
+                });
               })
             ];
           };
@@ -62,7 +73,8 @@
             cabal-install
             fourmolu
             haskell-language-server
-          ];
+          ]
+          ++ runtimeDependenciesFor pkgs;
         };
       }
     );
