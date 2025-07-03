@@ -1,5 +1,4 @@
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE NoOverloadedLists #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -7,17 +6,28 @@
 module Persistence where
 
 import Data.Hashable
-import Database.SQLite.Simple (FromRow, ToRow, NamedParam ((:=)), fromRow, toRow, Connection)
-import Database.SQLite.Simple qualified as SQLite.Simple
-import Database.SQLite.Simple.QQ
-import Region
-import Prelude
 import Data.Int (Int64)
 import Data.Maybe (listToMaybe)
-import Database.SQLite.Simple.ToField (ToField (toField))
+import Database.SQLite.Simple
+    ( Connection
+    , FromRow
+    , NamedParam ((:=))
+    , ToRow
+    , fromRow
+    , toRow
+    )
+import Database.SQLite.Simple qualified as SQLite.Simple
 import Database.SQLite.Simple.FromRow (field)
-import System.Directory (XdgDirectory(..), getXdgDirectory, createDirectoryIfMissing)
+import Database.SQLite.Simple.QQ
+import Database.SQLite.Simple.ToField (ToField (toField))
+import Region
+import System.Directory
+    ( XdgDirectory (..)
+    , createDirectoryIfMissing
+    , getXdgDirectory
+    )
 import System.FilePath ((</>))
+import Prelude
 
 data NamedRegion = NamedRegion
     { name :: Text
@@ -88,8 +98,8 @@ withDb f = do
     let dbFile = dir </> "guzzle.db"
     SQLite.Simple.withConnection dbFile f
 
-
-queryNamed :: (SQLite.Simple.FromRow r) => SQLite.Simple.Query -> [NamedParam] -> IO [r]
+queryNamed
+    :: (SQLite.Simple.FromRow r) => SQLite.Simple.Query -> [NamedParam] -> IO [r]
 queryNamed q ps = withDb \c -> SQLite.Simple.queryNamed c q ps
 
 execute_ :: (SQLite.Simple.ToRow p) => SQLite.Simple.Query -> p -> IO ()
@@ -105,7 +115,8 @@ execute' :: SQLite.Simple.Query -> IO Int
 execute' = flip executeNamed []
 
 -- | Runs the query and returns the ID of the last inserted row.
-executeWithLastRowId :: (SQLite.Simple.ToRow p) => SQLite.Simple.Query -> p -> IO Int64
+executeWithLastRowId
+    :: (SQLite.Simple.ToRow p) => SQLite.Simple.Query -> p -> IO Int64
 executeWithLastRowId q p = withDb \c -> do
     SQLite.Simple.execute c q p
     SQLite.Simple.lastInsertRowId c

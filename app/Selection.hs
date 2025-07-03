@@ -3,24 +3,31 @@
 module Selection where
 
 import Control.Exception (SomeException, try)
-import Control.Monad.Extra (fromMaybeM, maybeM)
-import Data.Foldable.Extra (firstJustM, for_)
+import Control.Monad.Extra (fromMaybeM)
 import Data.Either.Extra (eitherToMaybe)
+import Data.Foldable.Extra (firstJustM, for_)
 import Hyprctl qualified
 import Options.Applicative
     ( Parser
     , argument
     , help
+    , long
     , maybeReader
     , metavar
-    , (<|>), optional, strOption, long
+    , optional
+    , strOption
+    , (<|>)
+    )
+import Persistence
+    ( NamedRegion (..)
+    , getAllRegions
+    , getRegionByName
+    , insertRegion
     )
 import Region
 import Slurp qualified
 import Swaymsg qualified
 import Prelude
-import Persistence (getRegionByName, NamedRegion(..), insertRegion, getAllRegions)
-import Data.Maybe (fromMaybe)
 
 data SelectionMode
     = Area
@@ -58,14 +65,19 @@ data SelectionArgs = SelectionArgs
 parseSelectionArgs :: Parser SelectionArgs
 parseSelectionArgs = do
     selectionMode <- parseSelectionMode
-    regionName <- optional . strOption $ long "area-name" <> metavar "NAME" <> help "Retrieve an existing area or store a new one called NAME"
+    regionName <-
+        optional . strOption $
+            long "area-name"
+                <> metavar "NAME"
+                <> help "Retrieve an existing area or store a new one called NAME"
     pure SelectionArgs{..}
 
 selection :: SelectionArgs -> IO Region
-selection args@SelectionArgs{..} = firstJustM getRegionByName regionName >>= flip maybe (pure . region) do
-    region <- selectNewRegion args
-    for_ regionName \name -> insertRegion NamedRegion{..}
-    pure region
+selection args@SelectionArgs{..} =
+    firstJustM getRegionByName regionName >>= flip maybe (pure . region) do
+        region <- selectNewRegion args
+        for_ regionName \name -> insertRegion NamedRegion{..}
+        pure region
 
 selectNewRegion :: SelectionArgs -> IO Region
 selectNewRegion SelectionArgs{selectionMode = Anything} = Slurp.selectAnything =<< getVisibleWindowRegions

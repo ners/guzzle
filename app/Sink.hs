@@ -3,7 +3,6 @@ module Sink where
 import Content
 import Data.ByteString.Lazy qualified as LazyByteString
 import Data.Time (getCurrentTime)
-import Debug.Trace (trace)
 import Options.Applicative
     ( Alternative ((<|>))
     , Parser
@@ -39,7 +38,7 @@ parseSinkAction =
         -> Parser SinkAction
     sinkArgument s str helpStr =
         flip argument (metavar str <> help helpStr) . maybeReader $ \str' ->
-            trace (show (str', str)) $ if str' == str then Just s else Nothing
+            if str' == str then Just s else Nothing
 
 newtype SinkArgs = SinkArgs
     { sinkAction :: SinkAction

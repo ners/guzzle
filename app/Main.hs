@@ -1,6 +1,9 @@
 module Main where
 
 import Capture
+import Control.Concurrent.Extra
+import Control.Exception.Extra
+import Control.Monad (join)
 import Options.Applicative
     ( Parser
     , ParserInfo
@@ -14,9 +17,11 @@ import Options.Applicative
 import Options.Applicative.Builder (defaultPrefs)
 import Options.Applicative.Types (Backtracking (..))
 import Persistence (createNamedRegionTable)
-import Prelude
 import Selection
 import Sink
+import System.Console.ANSI (showCursor)
+import System.Exit (exitFailure)
+import Prelude
 
 data Args = Args
     { selectionArgs :: SelectionArgs
@@ -34,8 +39,13 @@ parseArgs = do
 parserInfo :: ParserInfo Args
 parserInfo = info (helper <*> parseArgs) (fullDesc <> progDesc "guzzle")
 
+abort :: AsyncException -> IO ()
+abort _ = do
+    showCursor
+    exitFailure
+
 main :: IO ()
-main = do
+main = flip catch abort . join . onceFork $ do
     createNamedRegionTable
     Args{..} <- customExecParser defaultPrefs{prefBacktrack = Backtrack} parserInfo
     selection selectionArgs >>= capture captureArgs >>= sink sinkArgs

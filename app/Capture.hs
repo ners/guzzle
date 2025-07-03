@@ -1,16 +1,30 @@
 module Capture where
 
 import Content
+import Control.Applicative (optional)
+import Control.Concurrent (threadDelay)
+import Data.Fixed (Micro, showFixed)
+import Data.Foldable (for_)
 import Grim qualified
 import Options.Applicative
     ( Alternative ((<|>))
     , Parser
     , argument
+    , auto
     , help
+    , long
     , maybeReader
     , metavar
+    , option
     )
 import Region
+import System.Console.ANSI (clearLine, hideCursor, setCursorColumn, showCursor)
+import System.IO
+    ( BufferMode (NoBuffering)
+    , hGetBuffering
+    , hSetBuffering
+    , stdout
+    )
 import WfRecorder qualified
 import Prelude
 
@@ -40,15 +54,39 @@ parseCaptureAction =
         flip argument (metavar str <> help helpStr) . maybeReader $ \str' ->
             if str' == str then Just s else Nothing
 
-newtype CaptureArgs = CaptureArgs
+data CaptureArgs = CaptureArgs
     { captureAction :: CaptureAction
+    , delay :: Maybe Micro
     }
 
 parseCaptureArgs :: Parser CaptureArgs
 parseCaptureArgs = do
     captureAction <- parseCaptureAction
+    delay <-
+        optional . option auto $
+            long "delay" <> metavar "T" <> help "Delay the capture by T seconds"
     pure CaptureArgs{..}
 
+countDown :: Micro -> IO ()
+countDown t = do
+    buffering <- hGetBuffering stdout
+    hSetBuffering stdout NoBuffering
+    hideCursor
+    for_ @[] [t, t - dt .. dt] \t' -> do
+        clearLine
+        putStr $ showFixed True t'
+        setCursorColumn 0
+        threadDelay . round $ dt * 1_000_000
+    clearLine
+    showCursor
+    hSetBuffering stdout buffering
+  where
+    dt :: Micro
+    dt = 0.01
+
 capture :: CaptureArgs -> Region -> IO Content
-capture CaptureArgs{captureAction = Screenshot} = fmap png . Grim.screenshotRegion
-capture CaptureArgs{captureAction = Video} = fmap mp4 . WfRecorder.recordRegion
+capture CaptureArgs{..} region = do
+    mapM_ countDown delay
+    case captureAction of
+        Screenshot -> png <$> Grim.screenshotRegion region
+        Video -> mp4 <$> WfRecorder.recordRegion region

@@ -14,7 +14,6 @@ module Prelude
     )
 where
 
-import "base" Prelude hiding (unzip)
 import Control.Monad ((<=<), (>=>))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson qualified as Aeson
@@ -35,6 +34,7 @@ import System.Exit (exitFailure, exitWith)
 import System.IO (stderr)
 import System.Process.Typed (ExitCode (..), StreamSpec, nullStream)
 import System.Process.Typed qualified as Process
+import "base" Prelude hiding (unzip)
 
 infixl 4 <$$>
 
