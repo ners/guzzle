@@ -1,0 +1,78 @@
+cabal-version:  1.12
+name:           guzzle
+version:        0.1.0.0
+synopsis:       guzzle your contents in style ✨
+description:    See https://hackage.haskell.org/package/guzzle/docs/Guzzle.html
+homepage:       https://github.com/ners/guzzle
+author:         ners
+maintainer:     ners@gmx.ch
+copyright:      2025 ners
+license:        Apache-2.0
+license-file:   LICENCE.md
+build-type:     Simple
+
+executable guzzle
+  hs-source-dirs:
+      app
+  main-is: Main.hs
+  default-language: GHC2021
+  default-extensions:
+      ApplicativeDo
+      BlockArguments
+      DataKinds
+      DefaultSignatures
+      DeriveAnyClass
+      DeriveGeneric
+      DerivingVia
+      ExplicitNamespaces
+      LambdaCase
+      NoImplicitPrelude
+      OverloadedLabels
+      OverloadedLists
+      OverloadedStrings
+      PackageImports
+      RecordWildCards
+      StrictData
+      TypeFamilies
+      ViewPatterns
+  ghc-options:
+      -Weverything
+      -Wno-unsafe
+      -Wno-all-missed-specialisations
+      -Wno-missing-export-lists
+      -Wno-missing-import-lists
+      -Wno-missing-kind-signatures
+      -Wno-missing-role-annotations
+      -Wno-missing-safe-haskell-mode
+      -threaded
+      -rtsopts
+      -with-rtsopts=-N
+  other-modules:
+      Capture
+      Content
+      Grim
+      Hyprctl
+      Persistence
+      Prelude
+      Region
+      Selection
+      Sink
+      Slurp
+      Swaymsg
+      WfRecorder
+      WlCopy
+      Paths_guzzle
+  build-depends:
+      aeson
+    , ansi-terminal
+    , base ==4.*
+    , bytestring
+    , directory
+    , extra
+    , filepath
+    , hashable
+    , optparse-applicative
+    , sqlite-simple
+    , text
+    , time
+    , typed-process

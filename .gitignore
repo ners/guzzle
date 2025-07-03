@@ -1,5 +1,4 @@
 # ignore
-*.cabal
 .*
 dist-newstyle
 result
