@@ -2,9 +2,7 @@ module Capture where
 
 import Content
 import Control.Applicative (optional)
-import Control.Concurrent (threadDelay)
-import Data.Fixed (Micro, showFixed)
-import Data.Foldable (for_)
+import Data.Fixed (Micro)
 import Grim qualified
 import Options.Applicative
     ( Alternative ((<|>))
@@ -18,7 +16,6 @@ import Options.Applicative
     , option
     )
 import Region
-import System.Console.ANSI (clearLine, setCursorColumn)
 import WfRecorder qualified
 import Prelude
 
@@ -51,6 +48,7 @@ parseCaptureAction =
 data CaptureArgs = CaptureArgs
     { captureAction :: CaptureAction
     , delay :: Maybe Micro
+    , duration :: Maybe Micro
     }
 
 parseCaptureArgs :: Parser CaptureArgs
@@ -59,23 +57,14 @@ parseCaptureArgs = do
     delay <-
         optional . option auto $
             long "delay" <> metavar "T" <> help "Delay the capture by T seconds"
+    duration <-
+        optional . option auto $
+            long "duration" <> metavar "T" <> help "Record video for T seconds"
     pure CaptureArgs{..}
-
-countDown :: Micro -> IO ()
-countDown t = do
-    for_ @[] [t, t - dt .. dt] \t' -> do
-        clearLine
-        putStr $ showFixed True t'
-        setCursorColumn 0
-        threadDelay . round $ dt * 1_000_000
-    clearLine
-  where
-    dt :: Micro
-    dt = 0.01
 
 capture :: CaptureArgs -> Region -> IO Content
 capture CaptureArgs{..} region = do
-    mapM_ countDown delay
+    mapM_ (countdown "Starting in: ") delay
     case captureAction of
         Screenshot -> png <$> Grim.screenshotRegion region
-        Video -> mp4 <$> WfRecorder.recordRegion region
+        Video -> mp4 <$> WfRecorder.recordRegion duration region

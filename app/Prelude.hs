@@ -7,6 +7,7 @@ module Prelude
     , module Data.Function
     , module Data.Functor
     , module Data.List.NonEmpty
+    , module Data.Maybe
     , module Data.String
     , module Data.Text
     , module GHC.Generics
@@ -14,15 +15,19 @@ module Prelude
     )
 where
 
+import Control.Concurrent (threadDelay)
 import Control.Monad ((<=<), (>=>))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson qualified as Aeson
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy (LazyByteString)
 import Data.ByteString.Lazy qualified as LazyByteString
+import Data.Fixed (Micro, showFixed)
+import Data.Foldable (for_)
 import Data.Function ((&))
 import Data.Functor
 import Data.List.NonEmpty (NonEmpty (..))
+import Data.Maybe
 import Data.String (IsString (..))
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -108,3 +113,15 @@ cmd_ (x :| xs) input = do
     printInfo $ Text.unwords (x : xs)
     Process.runProcess_ . Process.setStdin input $
         Process.proc (Text.unpack x) (Text.unpack <$> xs)
+
+countdown :: String -> Micro -> IO ()
+countdown what t = do
+    for_ @[] [t, t - dt .. dt] \t' -> do
+        clearLine
+        putStr $ what <> showFixed True t'
+        setCursorColumn 0
+        threadDelay . round $ dt * 1_000_000
+    clearLine
+  where
+    dt :: Micro
+    dt = 0.01

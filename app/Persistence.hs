@@ -7,7 +7,6 @@ module Persistence where
 
 import Data.Hashable
 import Data.Int (Int64)
-import Data.Maybe (listToMaybe)
 import Database.SQLite.Simple
     ( Connection
     , FromRow

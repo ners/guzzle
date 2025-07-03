@@ -1,7 +1,6 @@
 module Swaymsg where
 
 import Data.Aeson qualified as Aeson
-import Data.Maybe (fromMaybe, isJust)
 import Region
 import Prelude
 
