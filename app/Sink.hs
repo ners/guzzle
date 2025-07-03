@@ -65,9 +65,8 @@ sink SinkArgs{..} Content{..} = do
             <&> (-<.> extension contentType)
     let hasFile = isJust file || sinkAction == Just Save || contentType == MP4
     when hasFile $ LazyByteString.writeFile filename content
-    case sinkAction of
-        Nothing -> LazyByteString.putStr content
-        Just Print -> LazyByteString.putStr content
-        Just Save -> pure ()
-        Just Copy | hasFile -> WlCopy.wlCopyFile filename
-        Just Copy -> WlCopy.wlCopy Content{..}
+    case fromMaybe Copy sinkAction of
+        Copy | hasFile -> WlCopy.wlCopyFile filename
+        Copy -> WlCopy.wlCopy Content{..}
+        Save -> pure ()
+        Print -> LazyByteString.putStr content
