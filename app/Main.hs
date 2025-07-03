@@ -19,8 +19,9 @@ import Options.Applicative.Types (Backtracking (..))
 import Persistence (createNamedRegionTable)
 import Selection
 import Sink
-import System.Console.ANSI (showCursor)
-import System.Exit (exitFailure)
+import System.Console.ANSI (clearLine, hideCursor, setCursorColumn, showCursor)
+import System.Exit (exitSuccess)
+import System.IO (BufferMode (NoBuffering), hSetBuffering, stdout)
 import Prelude
 
 data Args = Args
@@ -39,13 +40,18 @@ parseArgs = do
 parserInfo :: ParserInfo Args
 parserInfo = info (helper <*> parseArgs) (fullDesc <> progDesc "guzzle")
 
-abort :: AsyncException -> IO ()
-abort _ = do
-    showCursor
-    exitFailure
-
 main :: IO ()
-main = flip catch abort . join . onceFork $ do
-    createNamedRegionTable
-    Args{..} <- customExecParser defaultPrefs{prefBacktrack = Backtrack} parserInfo
-    selection selectionArgs >>= capture captureArgs >>= sink sinkArgs
+main = do
+    hideCursor
+    hSetBuffering stdout NoBuffering
+    result <- try . join . onceFork $ do
+        createNamedRegionTable
+        Args{..} <- customExecParser defaultPrefs{prefBacktrack = Backtrack} parserInfo
+        selection selectionArgs >>= capture captureArgs >>= sink sinkArgs
+    showCursor
+    case result of
+        Left (e :: SomeException) -> do
+            clearLine
+            setCursorColumn 0
+            fatalError $ ishow e
+        Right () -> exitSuccess

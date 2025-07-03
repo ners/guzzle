@@ -18,13 +18,7 @@ import Options.Applicative
     , option
     )
 import Region
-import System.Console.ANSI (clearLine, hideCursor, setCursorColumn, showCursor)
-import System.IO
-    ( BufferMode (NoBuffering)
-    , hGetBuffering
-    , hSetBuffering
-    , stdout
-    )
+import System.Console.ANSI (clearLine, setCursorColumn)
 import WfRecorder qualified
 import Prelude
 
@@ -69,17 +63,12 @@ parseCaptureArgs = do
 
 countDown :: Micro -> IO ()
 countDown t = do
-    buffering <- hGetBuffering stdout
-    hSetBuffering stdout NoBuffering
-    hideCursor
     for_ @[] [t, t - dt .. dt] \t' -> do
         clearLine
         putStr $ showFixed True t'
         setCursorColumn 0
         threadDelay . round $ dt * 1_000_000
     clearLine
-    showCursor
-    hSetBuffering stdout buffering
   where
     dt :: Micro
     dt = 0.01
