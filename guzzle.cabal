@@ -1,4 +1,4 @@
-cabal-version:  1.12
+cabal-version:  2.0
 name:           guzzle
 version:        0.1.0.0
 synopsis:       guzzle your contents in style ✨
@@ -61,6 +61,8 @@ executable guzzle
       Swaymsg
       WfRecorder
       WlCopy
+      Paths_guzzle
+  autogen-modules:
       Paths_guzzle
   build-depends:
       aeson

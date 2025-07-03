@@ -4,6 +4,7 @@ import Capture
 import Control.Concurrent.Extra
 import Control.Exception.Extra
 import Control.Monad (join)
+import Data.Version (showVersion)
 import Options.Applicative
     ( Parser
     , ParserInfo
@@ -13,9 +14,11 @@ import Options.Applicative
     , helper
     , info
     , progDesc
+    , simpleVersioner
     )
 import Options.Applicative.Builder (defaultPrefs)
 import Options.Applicative.Types (Backtracking (..))
+import Paths_guzzle qualified
 import Persistence (createNamedRegionTable)
 import Selection
 import Sink
@@ -35,6 +38,7 @@ parseArgs = do
     sinkArgs <- parseSinkArgs
     selectionArgs <- parseSelectionArgs
     captureArgs <- parseCaptureArgs
+    simpleVersioner $ "guzzle " <> showVersion Paths_guzzle.version
     pure Args{..}
 
 parserInfo :: ParserInfo Args
@@ -42,12 +46,13 @@ parserInfo = info (helper <*> parseArgs) (fullDesc <> progDesc "guzzle")
 
 main :: IO ()
 main = do
+    createNamedRegionTable
+    Args{..} <- customExecParser defaultPrefs{prefBacktrack = Backtrack} parserInfo
     hideCursor
     hSetBuffering stdout NoBuffering
-    result <- try . join . onceFork $ do
-        createNamedRegionTable
-        Args{..} <- customExecParser defaultPrefs{prefBacktrack = Backtrack} parserInfo
-        selection selectionArgs >>= capture captureArgs >>= sink sinkArgs
+    result <-
+        try . join . onceFork $
+            selection selectionArgs >>= capture captureArgs >>= sink sinkArgs
     showCursor
     case result of
         Left (e :: SomeException) -> do
