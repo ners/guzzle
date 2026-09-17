@@ -1,6 +1,6 @@
 # Revision history for guzzle
 
-## Unreleased
+## 0.2.0.0 -- 2026-09-17
 
 * Add niri support.
 * Add `select` command.

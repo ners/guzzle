@@ -1,6 +1,6 @@
 cabal-version:  2.0
 name:           guzzle
-version:        0.1.0.0
+version:        0.2.0.0
 synopsis:       guzzle your contents in style ✨
 description:    See https://hackage.haskell.org/package/guzzle/docs/Guzzle.html
 homepage:       https://github.com/ners/guzzle
