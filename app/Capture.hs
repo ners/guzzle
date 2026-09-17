@@ -3,12 +3,16 @@
 module Capture where
 
 import Content
+import Control.Concurrent.Async (mapConcurrently)
 import Control.Monad (guard)
 import Data.Fixed (Micro)
 import Data.Foldable (for_)
+import Data.List.NonEmpty qualified as NonEmpty
 import Grim qualified
-import Region
-import System.FilePath (takeExtension)
+import Item (Item)
+import Item qualified
+import Template (Template)
+import Template qualified
 import WfRecorder qualified
 import Prelude
 
@@ -30,25 +34,37 @@ data CaptureArgs = CaptureArgs
     , framerate :: Maybe Int
     }
 
-capture :: CaptureArgs -> Maybe FilePath -> Region -> IO Content
-capture CaptureArgs{..} file region = do
-    for_ delay $ countdown "Starting in: "
-    case captureAction of
-        Screenshot -> do
-            contentType <- validateFormat [PNG, JPEG, PPM] PNG
-            content <- Grim.screenshotRegion contentType cursor quality scale region
-            pure Content{..}
-        Video -> do
-            contentType <- validateFormat [MP4, WEBM] MP4
-            content <-
-                WfRecorder.recordRegion contentType audio audioDevice framerate duration region
-            pure Content{..}
+resolveFormat :: CaptureArgs -> Maybe Template -> IO ContentType
+resolveFormat CaptureArgs{..} template = case format of
+    Just format | elem @[] format allowed -> pure format
+    Just _ -> fatalError "Invalid --format for this capture mode"
+    Nothing -> pure . fromMaybe def $ do
+        format <- formatFromExtension =<< Template.extension =<< template
+        format <$ guard (elem @[] format allowed)
   where
-    validateFormat :: [ContentType] -> ContentType -> IO ContentType
-    validateFormat allowed def = case format of
-        Just format | format `elem` allowed -> pure format
-        Just _ -> fatalError "Invalid --format for this capture mode"
-        Nothing -> pure . fromMaybe def $ do
-            path <- file
-            format <- formatFromExtension (takeExtension path)
-            format <$ guard (format `elem` allowed)
+    (allowed, def) = case captureAction of
+        Screenshot -> ([PNG, JPEG, PPM], PNG)
+        Video -> ([MP4, WEBM], MP4)
+
+capture
+    :: CaptureArgs
+    -> ContentType
+    -> NonEmpty Item
+    -> IO (NonEmpty (Item, Content))
+capture CaptureArgs{..} contentType items = do
+    for_ delay $ countdown "Starting in: "
+    contents <- case captureAction of
+        Screenshot ->
+            mapConcurrently
+                (Grim.screenshotRegion contentType cursor quality scale . Item.region)
+                items
+        Video ->
+            WfRecorder.recordRegions
+                contentType
+                audio
+                audioDevice
+                framerate
+                scale
+                duration
+                (Item.region <$> items)
+    pure . NonEmpty.zip items $ contents <&> \content -> Content{..}

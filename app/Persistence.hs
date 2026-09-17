@@ -19,7 +19,7 @@ import Database.SQLite.Simple qualified as SQLite.Simple
 import Database.SQLite.Simple.FromRow (field)
 import Database.SQLite.Simple.QQ
 import Database.SQLite.Simple.ToField (ToField (toField))
-import Region
+import Region (Region (..))
 import System.Directory
     ( XdgDirectory (..)
     , createDirectoryIfMissing
@@ -53,7 +53,8 @@ deriving anyclass instance Hashable NamedRegion
 
 createTables :: Connection -> IO ()
 createTables c = do
-    SQLite.Simple.execute_ c
+    SQLite.Simple.execute_
+        c
         [sql|
             CREATE TABLE IF NOT EXISTS named_regions
                 ( name TEXT NOT NULL
@@ -64,7 +65,8 @@ createTables c = do
                 , PRIMARY KEY (name)
                 )
         |]
-    SQLite.Simple.execute_ c
+    SQLite.Simple.execute_
+        c
         [sql|
             CREATE TABLE IF NOT EXISTS last_region
                 ( x INTEGER NOT NULL

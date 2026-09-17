@@ -1,5 +1,24 @@
 # Revision history for guzzle
 
+## 0.3.0.0 -- 2026-10-10
+
+* Add `--all` to select every candidate of the chosen kind.
+* Add plural aliases for selection kinds.
+* Add `--no-history` to disable storing and recalling areas.
+* Add `--no-notify` to disable desktop notifications. Breaking: remove `GUZZLE_NOTIFY`.
+* Make `--file` a template with placeholders.
+* Add `--format` to `select`.
+* Allow several selection kinds at once.
+* Add `--area-format`, `--window-format`, `--output-format`, and `--screen-format` to `select`.
+* Make interactive picks exact.
+* Add `%I` placeholder for the window identifier.
+* Apply `--scale` to videos. Reject non-positive values.
+* Support several items in `copy`, `save`, and `print`.
+* Capture several items concurrently.
+* Add `Region.Kind`.
+* Add `--quiet` and `--debug`. Breaking: remove `GUZZLE_DEBUG`.
+* Support outputs and screen on Hyprland.
+
 ## 0.2.0.0 -- 2026-09-17
 
 * Add niri support.

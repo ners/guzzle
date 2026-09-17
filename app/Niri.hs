@@ -1,9 +1,14 @@
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedRecordDot #-}
+
 module Niri where
 
 import Control.Monad (guard)
 import Data.Aeson qualified as Aeson
 import Data.Aeson.KeyMap qualified as KeyMap
-import Data.List (find, foldl1')
+import Data.List (find)
+import Item (Item (..))
+import Item qualified
 import Region (Region (Region))
 import Region qualified
 import Prelude hiding (id)
@@ -20,8 +25,12 @@ instance FromJSON WindowLayout where
             Aeson.defaultOptions{Aeson.fieldLabelModifier = Aeson.camelTo2 '_'}
 
 data Window = Window
-    { workspaceId :: Maybe Int
+    { id :: Int
+    , workspaceId :: Maybe Int
     , layout :: WindowLayout
+    , title :: Maybe Text
+    , appId :: Maybe Text
+    , pid :: Maybe Int
     }
     deriving stock (Generic)
 
@@ -84,28 +93,48 @@ getOutputs = outputs <$> jsonCmd ["niri", "msg", "--json", "outputs"] ""
 logicalToRegion :: LogicalOutput -> Region
 logicalToRegion LogicalOutput{x, y, width, height} = Region{x, y, w = width, h = height}
 
-windowToRegion :: [Workspace] -> [Output] -> Window -> Maybe Region
-windowToRegion workspaces outputs Window{workspaceId, layout} = do
-    wid <- workspaceId
-    workspace <- find ((== wid) . id) workspaces
-    guard (isActive workspace)
-    outputName <- output workspace
-    out <- find ((== outputName) . name) outputs
-    LogicalOutput{x = ox, y = oy} <- logical out
-    (tx, ty) <- tilePosInWorkspaceView layout
-    let (tw, th) = tileSize layout
-    pure Region{x = ox + round tx, y = oy + round ty, w = round tw, h = round th}
+windowToItem :: [Workspace] -> [Output] -> Window -> Maybe Item
+windowToItem workspaces outputs window = do
+    wid <- window.workspaceId
+    workspace <- find ((== wid) . (.id)) workspaces
+    guard workspace.isActive
+    outputName <- workspace.output
+    out <- find ((== outputName) . (.name)) outputs
+    LogicalOutput{x = ox, y = oy} <- out.logical
+    (tx, ty) <- window.layout.tilePosInWorkspaceView
+    let (tw, th) = window.layout.tileSize
+    pure
+        Item
+            { kind = Region.Window
+            , region =
+                Region{x = ox + round tx, y = oy + round ty, w = round tw, h = round th}
+            , name = fromMaybe "" window.title
+            , output = Just outputName
+            , app = window.appId
+            , pid = window.pid
+            , identifier = Just . ishow $ window.id
+            }
 
-getVisibleWindowRegions :: IO [Region]
-getVisibleWindowRegions = do
+outputToItem :: Output -> Maybe Item
+outputToItem out =
+    out.logical <&> \logical ->
+        Item
+            { kind = Region.Output
+            , region = logicalToRegion logical
+            , name = out.name
+            , output = Just out.name
+            , app = Nothing
+            , pid = Nothing
+            , identifier = Nothing
+            }
+
+getDesktop :: IO Item.Desktop
+getDesktop = do
     workspaces <- getWorkspaces
     outputs <- getOutputs
     windows <- getWindows
-    pure $ mapMaybe (windowToRegion workspaces outputs) windows
-
-getScreenRegion :: IO Region
-getScreenRegion = do
-    logicals <- mapMaybe logical <$> getOutputs
-    case logicalToRegion <$> logicals of
-        [] -> fail "No outputs"
-        rs -> pure $ foldl1' (<>) rs
+    pure
+        Item.Desktop
+            { outputs = mapMaybe outputToItem outputs
+            , windows = mapMaybe (windowToItem workspaces outputs) windows
+            }

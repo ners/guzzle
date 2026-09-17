@@ -16,8 +16,8 @@ module Prelude
 where
 
 import Control.Concurrent (threadDelay)
-import Control.Monad (when, (<=<), (>=>))
-import Control.Monad.Extra (mconcatMapM, whenM)
+import Control.Monad (unless, when, (<=<), (>=>))
+import Control.Monad.Extra (ifM, mconcatMapM, notM, whenM)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson qualified as Aeson
 import Data.ByteString (ByteString)
@@ -27,6 +27,7 @@ import Data.Fixed (Micro, showFixed)
 import Data.Foldable (for_)
 import Data.Function ((&))
 import Data.Functor
+import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe
 import Data.String (IsString (..))
@@ -36,9 +37,9 @@ import Data.Text.Encoding qualified as Text
 import Data.Text.IO qualified as Text
 import GHC.Generics (Generic)
 import System.Console.ANSI
-import System.Environment (lookupEnv)
 import System.Exit (exitFailure, exitWith)
 import System.IO (hPutStr, stderr)
+import System.IO.Unsafe (unsafePerformIO)
 import System.Process.Typed (ExitCode (..), StreamSpec, nullStream)
 import System.Process.Typed qualified as Process
 import "base" Prelude hiding (unzip)
@@ -66,8 +67,21 @@ printError t = do
     Text.hPutStrLn stderr t
     hSetSGR stderr [Reset]
 
-isDebug :: IO Bool
-isDebug = isJust <$> lookupEnv "GUZZLE_DEBUG"
+data Verbosity = Warn | Info | Trace
+    deriving stock (Eq, Ord, Bounded, Enum)
+
+verbosity :: IORef Verbosity
+verbosity = unsafePerformIO $ newIORef Info
+{-# NOINLINE verbosity #-}
+
+setVerbosity :: Verbosity -> IO ()
+setVerbosity = writeIORef verbosity
+
+verbosityAtLeast :: Verbosity -> IO Bool
+verbosityAtLeast level = (level <=) <$> readIORef verbosity
+
+verbosityBelow :: Verbosity -> IO Bool
+verbosityBelow = notM . verbosityAtLeast
 
 printWarn :: Text -> IO ()
 printWarn t = do
@@ -76,13 +90,13 @@ printWarn t = do
     hSetSGR stderr [Reset]
 
 printInfo :: Text -> IO ()
-printInfo t = do
+printInfo t = whenM (verbosityAtLeast Info) do
     hSetSGR stderr [SetColor Foreground Dull Cyan]
     Text.hPutStrLn stderr t
     hSetSGR stderr [Reset]
 
 printDebug :: Text -> IO ()
-printDebug t = whenM isDebug do
+printDebug t = whenM (verbosityAtLeast Trace) do
     hSetSGR stderr [SetColor Foreground Dull Magenta]
     Text.hPutStrLn stderr t
     hSetSGR stderr [Reset]
@@ -123,13 +137,15 @@ cmd_ (x :| xs) input = do
         Process.proc (Text.unpack x) (Text.unpack <$> xs)
 
 countdown :: String -> Micro -> IO ()
-countdown what t = do
+countdown what t = ifM (verbosityBelow Info) (sleep t) do
     for_ @[] [t, t - dt .. dt] \t' -> do
         hClearLine stderr
         hPutStr stderr $ what <> showFixed True t'
         hSetCursorColumn stderr 0
-        threadDelay . round $ dt * 1_000_000
+        sleep dt
     hClearLine stderr
   where
+    sleep :: Micro -> IO ()
+    sleep = threadDelay . round . (* 1_000_000)
     dt :: Micro
     dt = 0.01
