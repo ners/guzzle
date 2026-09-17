@@ -3,10 +3,12 @@
 module Capture where
 
 import Content
+import Control.Monad (guard)
 import Data.Fixed (Micro)
 import Data.Foldable (for_)
 import Grim qualified
 import Region
+import System.FilePath (takeExtension)
 import WfRecorder qualified
 import Prelude
 
@@ -28,8 +30,8 @@ data CaptureArgs = CaptureArgs
     , framerate :: Maybe Int
     }
 
-capture :: CaptureArgs -> Region -> IO Content
-capture CaptureArgs{..} region = do
+capture :: CaptureArgs -> Maybe FilePath -> Region -> IO Content
+capture CaptureArgs{..} file region = do
     for_ delay $ countdown "Starting in: "
     case captureAction of
         Screenshot -> do
@@ -44,6 +46,9 @@ capture CaptureArgs{..} region = do
   where
     validateFormat :: [ContentType] -> ContentType -> IO ContentType
     validateFormat allowed def = case format of
-        Nothing -> pure def
-        Just fmt | fmt `elem` allowed -> pure fmt
+        Just format | format `elem` allowed -> pure format
         Just _ -> fatalError "Invalid --format for this capture mode"
+        Nothing -> pure . fromMaybe def $ do
+            path <- file
+            format <- formatFromExtension (takeExtension path)
+            format <$ guard (format `elem` allowed)

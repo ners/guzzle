@@ -29,7 +29,9 @@ main = do
             case args of
                 Select selectionArgs -> selection selectionArgs >>= putStrLn . show
                 Run sinkArgs selectionArgs captureArgs ->
-                    selection selectionArgs >>= capture captureArgs >>= sink sinkArgs
+                    selection selectionArgs
+                        >>= capture captureArgs (file sinkArgs)
+                        >>= sink sinkArgs
     hShowCursor stderr
     case result of
         Left (e :: SomeException) -> do

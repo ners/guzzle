@@ -49,7 +49,7 @@ The `--cursor` flag includes the mouse cursor in a screenshot.
 
 The `--audio` flag records audio along with a video; `--audio-device DEVICE` selects a specific input device (requires `--audio`).
 
-The `--format` argument selects the output format: `png` (default), `jpeg`, or `ppm` for screenshots; `mp4` (default) or `webm` for videos.
+The `--format` argument selects the output format: `png` (default), `jpeg`, or `ppm` for screenshots; `mp4` (default) or `webm` for videos. If `--format` is not given, the format is inferred from the `--file` extension when possible (e.g. `--file=photo.jpg` produces a JPEG), otherwise falling back to the mode's default.
 
 The `--quality` argument sets the JPEG quality (0-100); it has no effect unless the format is `jpeg`.
 
