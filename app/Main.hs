@@ -8,16 +8,21 @@ import Control.Monad (join)
 import Persistence (createNamedRegionTable)
 import Selection
 import Sink
-import System.Console.ANSI (clearLine, hideCursor, setCursorColumn, showCursor)
+import System.Console.ANSI
+    ( hClearLine
+    , hHideCursor
+    , hSetCursorColumn
+    , hShowCursor
+    )
 import System.Exit (exitSuccess)
-import System.IO (BufferMode (NoBuffering), hSetBuffering, stdout)
+import System.IO (BufferMode (NoBuffering), hSetBuffering, stderr, stdout)
 import Prelude
 
 main :: IO ()
 main = do
     createNamedRegionTable
     args <- runParser
-    hideCursor
+    hHideCursor stderr
     hSetBuffering stdout NoBuffering
     result <-
         try . join . onceFork $
@@ -25,10 +30,10 @@ main = do
                 Select selectionArgs -> selection selectionArgs >>= putStrLn . show
                 Run sinkArgs selectionArgs captureArgs ->
                     selection selectionArgs >>= capture captureArgs >>= sink sinkArgs
-    showCursor
+    hShowCursor stderr
     case result of
         Left (e :: SomeException) -> do
-            clearLine
-            setCursorColumn 0
+            hClearLine stderr
+            hSetCursorColumn stderr 0
             fatalError $ ishow e
         Right () -> exitSuccess

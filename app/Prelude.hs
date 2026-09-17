@@ -36,7 +36,7 @@ import Data.Text.IO qualified as Text
 import GHC.Generics (Generic)
 import System.Console.ANSI
 import System.Exit (exitFailure, exitWith)
-import System.IO (stderr)
+import System.IO (hPutStr, stderr)
 import System.Process.Typed (ExitCode (..), StreamSpec, nullStream)
 import System.Process.Typed qualified as Process
 import "base" Prelude hiding (unzip)
@@ -117,11 +117,11 @@ cmd_ (x :| xs) input = do
 countdown :: String -> Micro -> IO ()
 countdown what t = do
     for_ @[] [t, t - dt .. dt] \t' -> do
-        clearLine
-        putStr $ what <> showFixed True t'
-        setCursorColumn 0
+        hClearLine stderr
+        hPutStr stderr $ what <> showFixed True t'
+        hSetCursorColumn stderr 0
         threadDelay . round $ dt * 1_000_000
-    clearLine
+    hClearLine stderr
   where
     dt :: Micro
     dt = 0.01

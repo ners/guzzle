@@ -4,6 +4,7 @@
 
 * Add niri support.
 * Add `select` command.
+* Fix `print` sink.
 
 ## 0.1.0.0 -- 2025-07-04
 
