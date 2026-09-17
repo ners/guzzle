@@ -12,8 +12,8 @@ license-file:   LICENCE.md
 build-type:     Simple
 
 executable guzzle
-  hs-source-dirs:
-      app
+  hs-source-dirs: app
+  ghc-options: -O2
   main-is: Main.hs
   default-language: GHC2021
   default-extensions:
@@ -52,6 +52,7 @@ executable guzzle
       Content
       Grim
       Hyprctl
+      Niri
       Persistence
       Prelude
       Region

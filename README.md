@@ -48,6 +48,16 @@ guzzle copy window --file=browser.png --area-name=browser
 - The image of the window will be copied to the clipboard and also saved to the file `browser.png`.
 - The area currently occupied by the window will be stored and reused on later invocations with `--area-name=browser`.
 
+### Window managers
+
+guzzle talks to window manager APIs to get window and monitor regions.
+
+The currently supported window managers are
+- Sway
+- Hyprland
+- niri
+- anything else you, the helpful reader, will contribute in PRs :-)
+
 ## Requirements
 
 guzzle looks for the following programs on the `PATH`:
@@ -57,12 +67,3 @@ guzzle looks for the following programs on the `PATH`:
 - `wl-copy`
 
 You don't have to worry about any of that if you use Nix.
-
-### Window managers
-
-guzzle talks to window manager APIs to get window and monitor regions.
-
-The currently supported window managers are
-- Sway
-- Hyprland
-- anything else you, the helpful reader, will contribute in PRs :-)

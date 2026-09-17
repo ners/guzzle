@@ -7,6 +7,7 @@ import Control.Monad.Extra (fromMaybeM)
 import Data.Either.Extra (eitherToMaybe)
 import Data.Foldable.Extra (firstJustM, for_)
 import Hyprctl qualified
+import Niri qualified
 import Options.Applicative
     ( Parser
     , argument
@@ -93,6 +94,7 @@ getVisibleWindowRegions =
         . firstJustM @[] (fmap eitherToMaybe . try @SomeException)
         $ [ Swaymsg.getVisibleWindowRegions
           , Hyprctl.getVisibleWindowRegions
+          , Niri.getVisibleWindowRegions
           ]
 
 getScreenRegion :: IO Region
@@ -100,4 +102,5 @@ getScreenRegion =
     fromMaybeM (fail "Cannot get screen information")
         . firstJustM @[] (fmap eitherToMaybe . try @SomeException)
         $ [ Swaymsg.getScreenRegion
+          , Niri.getScreenRegion
           ]
