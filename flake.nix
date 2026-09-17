@@ -78,6 +78,8 @@
             cabal-install
             fourmolu
             haskell-language-server
+            pkgs.lswt
+            pkgs.wayland-utils
           ]
           ++ runtimeDependenciesFor pkgs;
         };

@@ -1,23 +1,37 @@
 module Slurp where
 
 import Data.Text qualified as Text
-import Region
+import Region (Region (..))
+import Text.Read (readMaybe)
 import Prelude
 
-slurp :: [Text] -> Text -> IO Region
-slurp p t = read . fromText <$> textCmd ("slurp" :| "-d" : p) (textInput t)
+data Pick
+    = Listed Int
+    | Output Text
+    | Drawn
+    deriving stock (Eq, Show)
 
-selectNewOrExistingRegion :: [Region] -> IO Region
-selectNewOrExistingRegion = slurp [] . Text.unlines . fmap ishow
+parse :: Text -> Maybe (Region, Pick)
+parse (Text.words -> position : size : label) = do
+    region <- readMaybe . Text.unpack $ position <> " " <> size
+    (region,) <$> case Text.unwords label of
+        "" -> Just Drawn
+        text
+            | Just index <- Text.stripPrefix "#" text ->
+                Listed <$> readMaybe (Text.unpack index)
+            | otherwise -> Just $ Output text
+parse _ = Nothing
 
-selectNewRegion :: IO Region
-selectNewRegion = slurp [] ""
-
-selectRegion :: [Region] -> IO Region
-selectRegion = slurp ["-r"] . Text.unlines . fmap ishow
-
-selectOutput :: IO Region
-selectOutput = slurp ["-o", "-r"] ""
-
-selectAnything :: [Region] -> IO Region
-selectAnything = slurp ["-o"] . Text.unlines . fmap ishow
+pick :: [Text] -> [Region] -> IO (Region, Pick)
+pick flags regions =
+    textCmd
+        ("slurp" :| "-d" : "-f" : "%x,%y %wx%h %l" : flags)
+        (textInput candidates)
+        >>= maybe (fail "Cannot parse slurp output") pure . parse
+  where
+    candidates =
+        Text.unlines $
+            zipWith
+                (\index region -> ishow region <> " #" <> ishow index)
+                [0 :: Int ..]
+                regions

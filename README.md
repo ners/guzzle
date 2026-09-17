@@ -1,109 +1,235 @@
-guzzle 💦
-=========
+# guzzle 💦
 
 guzzle is a Wayland screen capture CLI tool.
 
-guzzle does not try to do any of these things:
+It does not try to:
 - support X11
-- capture anything other than pixels from a screen
+- capture anything other than screen pixels
 - have a GUI
 
-## Usage
+---
 
+## Quick start
+
+```sh
+# Screenshot an interactive selection to clipboard (default)
+guzzle
+
+# Screenshot an active window to clipboard
+guzzle copy window
+
+# Screenshot an area and save directly to a file
+guzzle -f screenshot.png
+
+# Count down 3 seconds, then copy to clipboard and also save to a file
+guzzle copy window --delay 3 -f browser.png
+
+# Record a 5-second video of a selected region
+guzzle save video --duration 5
+
+# Capture all connected monitors to individual files
+guzzle save --all outputs -f 'shots/%o.png'
+
+# Print selection geometry (slurp format) without capturing
+guzzle select
 ```
-guzzle select [selection]
-guzzle [sink] [selection] [capture]
-```
 
-`select` prints the selected area in `slurp` format (`X,Y WxH`) to stdout and exits, without capturing anything.
-
-`sink` can be one of:
-- `copy` - copy the contents to the clipboard (default)
-- `save` - save the contents to a file (default if `--file` is present)
-- `print` - print the contents to stdout
-
-The output filename for `save` is the current date and time, unless the `--file` argument is given.
-
-The `--file` argument can also be given for other `sink` options, in which case a file will be saved in addition to the specified action.
-
-`selection` can be one of:
-- `area` - select a region
-- `window` - select a visible window
-- `output` - select a visible display output / monitor
-- `screen` - all visible outputs
-- `anything` - select a region, window, or output (default)
-
-Selections can be saved and reused with the `--area-name` arguments. When an area name is first used, the user will have to make a selection. On subsequent uses, the saved area will be used automatically.
-
-The `--last-area` flag reuses whichever area was selected most recently, without prompting for a new selection.
-
-`capture` can be one of:
-- `screenshot` - make a screenshot of the selected region (default)
-- `video` - record a video of the selected region
-
-Capture can be delayed with the `--delay` argument, which accepts the number of seconds to wait for your make-up crew to finish.
-
-The duration of video recordings can be specified with the `--duration` argument, which accepts the number of seconds for the recording.
-
-The `--cursor` flag includes the mouse cursor in a screenshot.
-
-The `--audio` flag records audio along with a video; `--audio-device DEVICE` selects a specific input device (requires `--audio`).
-
-The `--format` argument selects the output format: `png` (default), `jpeg`, or `ppm` for screenshots; `mp4` (default) or `webm` for videos. If `--format` is not given, the format is inferred from the `--file` extension when possible (e.g. `--file=photo.jpg` produces a JPEG), otherwise falling back to the mode's default.
-
-The `--quality` argument sets the JPEG quality (0-100); it has no effect unless the format is `jpeg`.
-
-The `--scale` argument sets a scale factor for screenshots.
-
-The `--framerate` argument sets the framerate for video recordings.
-
-When a capture finishes, guzzle sends a desktop notification via `notify-send`. This is best-effort and silently skipped if `notify-send` is unavailable. Set `GUZZLE_NOTIFY=0` to disable these notifications entirely.
-
-### Examples
-
-```
-guzzle copy window --file=browser.png --area-name=browser
-```
-- The user is prompted to select a visible window on the screen.
-- The image of the window will be copied to the clipboard and also saved to the file `browser.png`.
-- The area currently occupied by the window will be stored and reused on later invocations with `--area-name=browser`.
-
-### Window managers
-
-guzzle talks to window manager APIs to get window and monitor regions.
-
-The currently supported window managers are
-- Sway
-- Hyprland
-- niri
-- anything else you, the helpful reader, will contribute in PRs :-)
+---
 
 ## Requirements
 
-guzzle looks for the following programs on the `PATH`:
-- `slurp` the original inspiration for this project's name
-- `grim` for screenshots
-- `wl-recorder` for video
-- `wl-copy` for copy
-- `notify-send` for desktop notifications
+guzzle requires the following utilities on `PATH`:
 
-You don't have to worry about any of that if you use Nix.
+- [`slurp`](https://github.com/emersion/slurp) for interactive screen selection (the original inspiration for this project's name)
+- [`grim`](https://gitlab.freedesktop.org/emersion/grim) for screenshot capture
+- [`wf-recorder`](https://github.com/ammen99/wf-recorder) for video recording
+- [`wl-copy`](https://github.com/bugaevc/wl-clipboard) for clipboard support
+- [`notify-send`](https://gitlab.gnome.org/GNOME/libnotify) for desktop notifications (optional)
 
-## Debugging
+If you use **Nix**, all runtime dependencies are packaged automatically.
 
-By default guzzle runs silently. Set the `GUZZLE_DEBUG` environment variable to print the commands guzzle runs, along with other diagnostic logs, to stderr.
+Arguments and flags can be passed in any order.
+
+---
+
+## Command reference
+
+```sh
+guzzle [verbosity] [sink] [selection] [capture] [options...]
+guzzle [verbosity] select [selection] [options...]
+```
+
+---
+
+### Sinks
+
+A sink determines what to do with captured pixels:
+
+| Sink | Description |
+|---|---|
+| `copy` | Copy to clipboard (**default**). If multiple items are captured, saves them and copies their file URIs (`text/uri-list`). |
+| `save` | Save to file(s) (**default** if `-f`/`--file` is specified). Default filename: `guzzle-%d.<ext>`. |
+| `print` | Stream raw data to `stdout`. Cannot stream more than one video. |
+
+#### Sink options
+
+- `-f, --file TEMPLATE`: Save content to `TEMPLATE`. Supports placeholders (see [Templates](#template-placeholders)). Also saves to disk when used with `copy` or `print`.
+- `--no-notify`: Disable desktop notifications sent on capture completion.
+
+---
+
+### Selections
+
+Selection targets determine what region on screen to capture:
+
+| Selection | Alias | Description |
+|---|---|---|
+| `anything` | | Interactively pick a window, output, or drawn region (**default**) |
+| `area` | `areas` | Select or draw a rectangular region |
+| `window` | `windows` | Select a visible window |
+| `output` | `outputs` | Select a visible monitor / display output |
+| `screen` | `screens` | Full region covering all visible outputs |
+
+Multiple selections can be specified together (e.g. `guzzle window output`) to offer candidates from all chosen kinds.
+
+#### Selection options
+
+- `--all`: Select every candidate of the chosen kind without interactive prompting.
+- `--area-name NAME`: Retrieve a previously saved area, or save the newly drawn area as `NAME` for future runs.
+- `--last-area`: Reuse the most recently selected area without prompting.
+- `--no-history`: Do not store or recall saved areas, and disable history features.
+
+*Note: `--all` and `--no-history` cannot be combined with `--area-name` or `--last-area`.*
+
+---
+
+### Capture modes
+
+| Mode | Description |
+|---|---|
+| `screenshot` | Capture an image (**default**) |
+| `video` | Record a screen video |
+
+#### General capture options
+
+- `--delay T`: Delay capture by `T` seconds (displays an interactive countdown).
+- `--format FORMAT`: Output format:
+  - Screenshots: `png` (**default**), `jpg` / `jpeg`, `ppm`
+  - Videos: `mp4` (**default**), `webm`
+  - If omitted, format is inferred from the `-f`/`--file` extension when present.
+- `--scale FACTOR`: Scaling factor greater than 0 (e.g. `2` or `0.5`). Screenshots scale logical pixels; videos scale native pixels.
+
+#### Screenshot options
+
+- `--cursor`: Include mouse pointer in screenshot.
+- `--quality N`: JPEG compression quality (`0`–`100`, default: `80`). Only applies when format is JPEG.
+
+#### Video options
+
+- `--duration T`: Record video for `T` seconds (default: `3`).
+- `--framerate FPS`: Framerate for video recording.
+- `--audio`: Record audio along with video.
+- `--audio-device DEVICE`: Audio input device to record from (requires `--audio`).
+
+---
+
+### The `select` command
+
+`guzzle select` queries geometry without capturing any pixels. By default, it prints geometry in `slurp` format (`X,Y WxH`) to `stdout`.
+
+```sh
+guzzle select [selection] [options...]
+```
+
+Supports all [selection options](#selection-options) (`--all`, `--area-name`, `--last-area`, `--no-history`).
+
+#### Select formatting options
+
+- `--format TEMPLATE`: Print custom formatted string per item instead of geometry.
+- Kind-specific format overrides:
+  - `--area-format TEMPLATE`
+  - `--window-format TEMPLATE`
+  - `--output-format TEMPLATE`
+  - `--screen-format TEMPLATE`
+
+Example: use guzzle as an [output chooser on wlroots](https://man.archlinux.org/man/xdg-desktop-portal-wlr.5#OUTPUT_CHOOSER):
+
+```sh
+guzzle select window output --no-history --window-format 'Window: %I' --output-format 'Monitor: %o'
+```
+
+---
+
+### Template placeholders
+
+Placeholders can be used in `--file` templates and `select --format` templates:
+
+| Placeholder | Description | Example |
+|---|---|---|
+| `%n` | Name: window title, output name, or area name | `Firefox`, `eDP-1`, `my-area` |
+| `%k` | Item kind (`area`, `window`, `output`, `screen`) | `window` |
+| `%o` | Output name (for windows: output they are on) | `eDP-1` |
+| `%a` | Window application ID or class | `org.mozilla.firefox` |
+| `%p` | Window process ID (PID) | `1234` |
+| `%I` | Window identifier (as used by `xdg-desktop-portal-wlr` and `lswt`) | `32` |
+| `%i` | Index of item in this run (starting at 1) | `1` |
+| `%d` | Current UTC timestamp (`%Y-%m-%dT%H:%M:%S`) | `2026-10-09T14:30:00` |
+| `%x`, `%y` | Top-left X and Y coordinates | `1920`, `0` |
+| `%w`, `%h` | Region width and height | `1920`, `1080` |
+| `%%` | Literal percent sign | `%` |
+
+#### Sanitisation rules
+
+- **In `--file`**:
+  - `/` and ASCII control characters are replaced with `_`.
+  - Leading dots are removed to avoid accidental hidden files.
+  - Values are truncated to 64 characters.
+  - If multiple files resolve to the same path, `-1`, `-2`, etc. are automatically appended before the extension.
+- **In `select --format`**:
+  - Control characters are replaced with spaces.
+  - Slashes and string lengths are preserved as-is.
+
+---
+
+### Logging
+
+All logging goes to `stderr`.
+
+The logging verbosity is controlled by the following options:
+
+| Level | Option | Description |
+|---|---|---|
+| `Trace` | `--debug` | Print executed external commands and diagnostic traces |
+| `Info` | *(default)* | Print informational messages (e.g. saved file paths) and interactive countdowns |
+| `Warn` | `-q`, `--quiet` | Print only warnings and errors |
+
+---
+
+## Window manager support
+
+guzzle communicates with window manager IPC APIs to resolve window and monitor geometries.
+
+| Selection | Sway | Hyprland | niri |
+|---|:---:|:---:|:---:|
+| `area` | ✔ | ✔ | ✔ |
+| `window` | ✔ | ✔ | ✔ |
+| `output` | ✔ | ✔ | ✔ |
+| `screen` | ✔ | ✔ | ✔ |
+
+---
 
 ## Shell completion
 
-guzzle supports bash, zsh, and fish completion out of the box:
+Shell completion scripts can be generated directly:
 
 ```sh
-# bash (e.g. in ~/.bashrc)
+# Bash (e.g. in ~/.bashrc)
 source <(guzzle --bash-completion-script "$(command -v guzzle)")
 
-# zsh (e.g. in ~/.zshrc)
+# Zsh (e.g. in ~/.zshrc)
 source <(guzzle --zsh-completion-script "$(command -v guzzle)")
 
-# fish (e.g. in ~/.config/fish/completions/guzzle.fish)
+# Fish (e.g. in ~/.config/fish/completions/guzzle.fish)
 guzzle --fish-completion-script "$(command -v guzzle)" | source
 ```
+

@@ -2,7 +2,7 @@ module Grim where
 
 import Content
 import Control.Monad (guard)
-import Region
+import Region (Region (..))
 import Prelude
 
 grim :: [Text] -> IO LazyByteString

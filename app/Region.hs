@@ -39,3 +39,12 @@ instance Semigroup Region where
 -- | The empty region at 0,0
 instance Monoid Region where
     mempty = Region{x = 0, y = 0, w = 0, h = 0}
+
+data Kind = Area | Window | Output | Screen
+    deriving stock (Eq, Show, Bounded, Enum)
+
+aliases :: Kind -> NonEmpty Text
+aliases Area = "area" :| ["areas"]
+aliases Window = "window" :| ["windows"]
+aliases Output = "output" :| ["outputs"]
+aliases Screen = "screen" :| ["screens"]

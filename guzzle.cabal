@@ -1,83 +1,94 @@
-cabal-version:  2.0
-name:           guzzle
-version:        0.2.0.0
-synopsis:       guzzle your contents in style ✨
-description:    See https://hackage.haskell.org/package/guzzle/docs/Guzzle.html
-homepage:       https://github.com/ners/guzzle
-author:         ners
-maintainer:     ners@gmx.ch
-copyright:      2025 ners
-license:        Apache-2.0
-license-file:   LICENCE.md
-build-type:     Simple
+cabal-version: 2.2
+name: guzzle
+version: 0.3.0.0
+synopsis: guzzle your contents in style ✨
+description: See https://hackage.haskell.org/package/guzzle/docs/Guzzle.html
+homepage: https://github.com/ners/guzzle
+author: ners
+maintainer: ners@gmx.ch
+copyright: 2025 ners
+license: Apache-2.0
+license-file: LICENCE.md
+build-type: Simple
 
-executable guzzle
-  hs-source-dirs: app
-  ghc-options: -O2
-  main-is: Main.hs
+common shared
   default-language: GHC2021
   default-extensions:
-      ApplicativeDo
-      BlockArguments
-      DataKinds
-      DefaultSignatures
-      DeriveAnyClass
-      DeriveGeneric
-      DerivingVia
-      ExplicitNamespaces
-      LambdaCase
-      NoImplicitPrelude
-      OverloadedLabels
-      OverloadedLists
-      OverloadedStrings
-      PackageImports
-      RecordWildCards
-      StrictData
-      TypeFamilies
-      ViewPatterns
+    ApplicativeDo
+    BlockArguments
+    DataKinds
+    DefaultSignatures
+    DeriveAnyClass
+    DeriveGeneric
+    DerivingVia
+    ExplicitNamespaces
+    LambdaCase
+    NoImplicitPrelude
+    OverloadedLabels
+    OverloadedLists
+    OverloadedStrings
+    PackageImports
+    RecordWildCards
+    StrictData
+    TypeFamilies
+    ViewPatterns
+
   ghc-options:
-      -Weverything
-      -Wno-unsafe
-      -Wno-all-missed-specialisations
-      -Wno-missing-export-lists
-      -Wno-missing-import-lists
-      -Wno-missing-kind-signatures
-      -Wno-missing-role-annotations
-      -Wno-missing-safe-haskell-mode
-      -threaded
-      -rtsopts
-      -with-rtsopts=-N
-  other-modules:
-      Args
-      Capture
-      Content
-      Grim
-      Hyprctl
-      Niri
-      Notify
-      Persistence
-      Prelude
-      Region
-      Selection
-      Sink
-      Slurp
-      Swaymsg
-      WfRecorder
-      WlCopy
-      Paths_guzzle
-  autogen-modules:
-      Paths_guzzle
+    -Weverything
+    -Wno-unsafe
+    -Wno-all-missed-specialisations
+    -Wno-missing-export-lists
+    -Wno-missing-import-lists
+    -Wno-missing-kind-signatures
+    -Wno-missing-role-annotations
+    -Wno-missing-safe-haskell-mode
+
   build-depends:
-      aeson
-    , ansi-terminal
-    , base ==4.*
-    , bytestring
-    , directory
-    , extra
-    , filepath
-    , hashable
-    , optparse-applicative
-    , sqlite-simple
-    , text
-    , time
-    , typed-process
+    aeson,
+    ansi-terminal,
+    async,
+    base ==4.*,
+    bytestring,
+    directory,
+    extra,
+    filepath,
+    hashable,
+    optparse-applicative,
+    sqlite-simple,
+    text,
+    time,
+    typed-process,
+
+executable guzzle
+  import: shared
+  hs-source-dirs: app
+  main-is: Main.hs
+  ghc-options:
+    -O2
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  other-modules:
+    Args
+    Capture
+    Content
+    Grim
+    Hyprctl
+    Item
+    Niri
+    Notify
+    Paths_guzzle
+    Persistence
+    Prelude
+    Region
+    Selection
+    Sink
+    Slurp
+    Swaymsg
+    Template
+    WfRecorder
+    WlCopy
+
+  autogen-modules:
+    Paths_guzzle
