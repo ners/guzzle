@@ -5,7 +5,6 @@ import Capture
 import Control.Concurrent.Extra
 import Control.Exception.Extra
 import Control.Monad (join)
-import Persistence (createTables)
 import Selection
 import Sink
 import System.Console.ANSI
@@ -20,7 +19,6 @@ import Prelude
 
 main :: IO ()
 main = do
-    createTables
     args <- runParser
     hHideCursor stderr
     hSetBuffering stdout NoBuffering

@@ -37,19 +37,22 @@
               (hfinal: hprev: with prev.haskell.lib.compose; {
                 ${pname} = (hfinal.callCabal2nix pname (sourceFilter ./.) {
                   optparse-applicative = lib.pipe { } [
-                    (hprev.callHackageDirect {
-                      pkg = "optparse-applicative";
-                      ver = "0.19.0.0";
-                      sha256 = "sha256-dhqvRILfdbpYPMxC+WpAyO0KUfq2nLopGk1NdSN2SDM=";
-                    })
+                    (_: hprev.optparse-applicative_0_19_0_0)
                     (appendPatch ./arg-backtracking.patch)
                     dontCheck
                   ];
                 }).overrideAttrs (attrs: {
-                  nativeBuildInputs = (attrs.nativeBuildInputs or [ ]) ++ [ prev.makeWrapper ];
+                  nativeBuildInputs = attrs.nativeBuildInputs or [ ] ++ [
+                    prev.makeWrapper
+                    prev.installShellFiles
+                  ];
                   postInstall = ''
                     ${attrs.postInstall or ""}
                     wrapProgram $out/bin/${pname} --prefix PATH : "${lib.makeBinPath (runtimeDependenciesFor prev)}"
+                    installShellCompletion --cmd ${pname} \
+                      --bash <($out/bin/${pname} --bash-completion-script $out/bin/${pname}) \
+                      --fish <($out/bin/${pname} --fish-completion-script $out/bin/${pname}) \
+                      --zsh <($out/bin/${pname} --zsh-completion-script $out/bin/${pname})
                   '';
                 });
               })

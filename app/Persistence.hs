@@ -51,9 +51,9 @@ deriving anyclass instance Hashable Region
 
 deriving anyclass instance Hashable NamedRegion
 
-createTables :: IO ()
-createTables = do
-    void . execute' $
+createTables :: Connection -> IO ()
+createTables c = do
+    SQLite.Simple.execute_ c
         [sql|
             CREATE TABLE IF NOT EXISTS named_regions
                 ( name TEXT NOT NULL
@@ -64,7 +64,7 @@ createTables = do
                 , PRIMARY KEY (name)
                 )
         |]
-    void . execute' $
+    SQLite.Simple.execute_ c
         [sql|
             CREATE TABLE IF NOT EXISTS last_region
                 ( x INTEGER NOT NULL
@@ -115,7 +115,7 @@ withDb f = do
     dir <- getXdgDirectory XdgState "guzzle"
     createDirectoryIfMissing True dir
     let dbFile = dir </> "guzzle.db"
-    SQLite.Simple.withConnection dbFile f
+    SQLite.Simple.withConnection dbFile \c -> createTables c >> f c
 
 queryNamed
     :: (SQLite.Simple.FromRow r) => SQLite.Simple.Query -> [NamedParam] -> IO [r]
@@ -129,9 +129,6 @@ executeNamed :: SQLite.Simple.Query -> [NamedParam] -> IO Int
 executeNamed q ps = withDb \c -> do
     SQLite.Simple.executeNamed c q ps
     SQLite.Simple.changes c
-
-execute' :: SQLite.Simple.Query -> IO Int
-execute' = flip executeNamed []
 
 -- | Runs the query and returns the ID of the last inserted row.
 executeWithLastRowId
