@@ -5,6 +5,7 @@
 * Add niri support.
 * Add `select` command.
 * Fix `print` sink.
+* Add `--last-area`, `--cursor`, `--audio`, `--audio-device`, `--format`, `--quality`, `--scale`, `--framerate`.
 
 ## 0.1.0.0 -- 2025-07-04
 

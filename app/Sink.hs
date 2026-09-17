@@ -25,7 +25,7 @@ sink SinkArgs{..} Content{..} = do
     filename <-
         maybe (("guzzle-" <>) . iso8601Show <$> getCurrentTime) pure file
             <&> (-<.> extension contentType)
-    let hasFile = isJust file || sinkAction == Just Save || contentType == MP4
+    let hasFile = isJust file || sinkAction == Just Save || isVideo contentType
     when hasFile $ LazyByteString.writeFile filename content
     case fromMaybe Copy sinkAction of
         Copy | hasFile -> WlCopy.wlCopyFile filename

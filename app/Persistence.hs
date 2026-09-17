@@ -51,11 +51,11 @@ deriving anyclass instance Hashable Region
 
 deriving anyclass instance Hashable NamedRegion
 
-createNamedRegionTable :: IO ()
-createNamedRegionTable =
+createTables :: IO ()
+createTables = do
     void . execute' $
         [sql|
-            CREATE TABLE IF NOT EXISTS regions
+            CREATE TABLE IF NOT EXISTS named_regions
                 ( name TEXT NOT NULL
                 , x INTEGER NOT NULL
                 , y INTEGER NOT NULL
@@ -64,31 +64,51 @@ createNamedRegionTable =
                 , PRIMARY KEY (name)
                 )
         |]
+    void . execute' $
+        [sql|
+            CREATE TABLE IF NOT EXISTS last_region
+                ( x INTEGER NOT NULL
+                , y INTEGER NOT NULL
+                , w INTEGER NOT NULL
+                , h INTEGER NOT NULL
+                )
+        |]
 
-getAllRegions :: IO [NamedRegion]
-getAllRegions = queryNamed [sql| SELECT * FROM regions |] []
+getAllNamedRegions :: IO [NamedRegion]
+getAllNamedRegions = queryNamed [sql| SELECT * FROM named_regions |] []
 
-getRegionByName :: Text -> IO (Maybe NamedRegion)
-getRegionByName name =
+getNamedRegion :: Text -> IO (Maybe NamedRegion)
+getNamedRegion name =
     listToMaybe
         <$> queryNamed
-            [sql| SELECT * FROM regions WHERE name = :name |]
+            [sql| SELECT * FROM named_regions WHERE name = :name |]
             [":name" := name]
 
-insertRegion :: NamedRegion -> IO ()
-insertRegion namedRegion =
+insertNamedRegion :: NamedRegion -> IO ()
+insertNamedRegion namedRegion =
     execute_
         [sql|
-            INSERT OR REPLACE INTO regions (name, x, y, w, h) VALUES (?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO named_regions (name, x, y, w, h) VALUES (?, ?, ?, ?, ?)
         |]
         namedRegion
 
-deleteRegionByName :: Text -> IO Bool
-deleteRegionByName name =
+deleteNamedRegion :: Text -> IO Bool
+deleteNamedRegion name =
     executeNamed
-        [sql| DELETE FROM regions WHERE name = :name |]
+        [sql| DELETE FROM named_regions WHERE name = :name |]
         [":name" := name]
         <&> (> 0)
+
+getLastRegion :: IO (Maybe Region)
+getLastRegion = listToMaybe <$> queryNamed [sql| SELECT * FROM last_region |] []
+
+setLastRegion :: Region -> IO ()
+setLastRegion region = withDb \c -> do
+    SQLite.Simple.execute_ c [sql| DELETE FROM last_region |]
+    SQLite.Simple.execute
+        c
+        [sql| INSERT INTO last_region (x, y, w, h) VALUES (?, ?, ?, ?) |]
+        region
 
 withDb :: (Connection -> IO a) -> IO a
 withDb f = do

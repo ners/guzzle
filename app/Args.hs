@@ -1,6 +1,7 @@
 module Args where
 
 import Capture
+import Content (formatFromExtension)
 import Data.Version (showVersion)
 import Options.Applicative
 import Options.Applicative.Types (Backtracking (..))
@@ -44,14 +45,21 @@ parseSelectionMode =
         , pure Anything
         ]
 
+parseAreaSelector :: Parser AreaSelector
+parseAreaSelector =
+    ByName
+        <$> strOption
+            ( long "area-name"
+                <> metavar "NAME"
+                <> help "Retrieve an existing area or store a new one called NAME"
+            )
+            <|> flag' LastArea (long "last-area" <> help "Reuse the last selected area")
+            <|> pure NewArea
+
 parseSelectionArgs :: Parser SelectionArgs
 parseSelectionArgs = do
     selectionMode <- parseSelectionMode
-    regionName <-
-        optional . strOption $
-            long "area-name"
-                <> metavar "NAME"
-                <> help "Retrieve an existing area or store a new one called NAME"
+    areaSelector <- parseAreaSelector
     pure SelectionArgs{..}
 
 parseCaptureAction :: Parser CaptureAction
@@ -72,7 +80,39 @@ parseCaptureArgs = do
     duration <-
         optional . option auto $
             long "duration" <> metavar "T" <> help "Record video for T seconds"
+    cursor <-
+        switch $
+            long "cursor" <> help "Include the mouse cursor in the screenshot"
+    format <-
+        optional . option (maybeReader formatFromExtension) $
+            long "format"
+                <> metavar "FORMAT"
+                <> help
+                    "Output format: png, jpg, or ppm for screenshots (default png); mp4 or webm for video (default mp4)"
+    quality <-
+        optional . option auto $
+            long "quality"
+                <> metavar "N"
+                <> help "JPEG quality 0-100 (default: 80)"
+    scale <-
+        optional . option auto $
+            long "scale" <> metavar "FACTOR" <> help "Scale factor for the screenshot"
+    framerate <-
+        optional . option auto $
+            long "framerate" <> metavar "FPS" <> help "Video framerate"
+    (audio, audioDevice) <-
+        maybe (False, Nothing) (True,)
+            <$> optional (audioFlag *> optional audioDeviceOption)
     pure CaptureArgs{..}
+  where
+    audioFlag :: Parser ()
+    audioFlag = flag' () $ long "audio" <> help "Record audio with the video"
+    audioDeviceOption :: Parser String
+    audioDeviceOption =
+        strOption $
+            long "audio-device"
+                <> metavar "DEVICE"
+                <> help "Audio device to record from (requires --audio)"
 
 data Args
     = Select SelectionArgs

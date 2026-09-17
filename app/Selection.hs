@@ -9,11 +9,6 @@ import Data.Foldable.Extra (firstJustM, for_)
 import Hyprctl qualified
 import Niri qualified
 import Persistence
-    ( NamedRegion (..)
-    , getAllRegions
-    , getRegionByName
-    , insertRegion
-    )
 import Region
 import Slurp qualified
 import Swaymsg qualified
@@ -27,25 +22,45 @@ data SelectionMode
     | Anything
     deriving stock (Eq, Bounded, Enum)
 
+data AreaSelector
+    = ByName Text
+    | LastArea
+    | NewArea
+
 data SelectionArgs = SelectionArgs
     { selectionMode :: SelectionMode
-    , regionName :: Maybe Text
+    , areaSelector :: AreaSelector
     }
 
 selection :: SelectionArgs -> IO Region
-selection args@SelectionArgs{..} =
-    firstJustM getRegionByName regionName >>= flip maybe (pure . region) do
-        region <- selectNewRegion args
-        for_ regionName \name -> insertRegion NamedRegion{..}
-        pure region
+selection SelectionArgs{areaSelector = LastArea} =
+    fromMaybeM (fail "No last area saved") getLastRegion
+selection args@SelectionArgs{..} = do
+    let regionName = case areaSelector of ByName name -> Just name; _ -> Nothing
+    region <-
+        firstJustM getNamedRegion regionName >>= flip maybe (pure . region) do
+            region <- selectNewRegion args
+            for_ regionName \name -> insertNamedRegion NamedRegion{..}
+            pure region
+    setLastRegion region
+    pure region
 
 selectNewRegion :: SelectionArgs -> IO Region
-selectNewRegion SelectionArgs{selectionMode = Anything} = Slurp.selectAnything =<< getVisibleWindowRegions
-selectNewRegion SelectionArgs{selectionMode = Area, regionName = Nothing} = Slurp.selectNewOrExistingRegion =<< region <$$> getAllRegions
-selectNewRegion SelectionArgs{selectionMode = Area} = Slurp.selectNewRegion
-selectNewRegion SelectionArgs{selectionMode = Window} = Slurp.selectRegion =<< getVisibleWindowRegions
+selectNewRegion SelectionArgs{selectionMode = Anything} =
+    Slurp.selectAnything
+        =<< liftA2 (<>) getVisibleWindowRegions getAllNamedRegions'
+selectNewRegion SelectionArgs{selectionMode = Area, areaSelector = ByName{}} =
+    Slurp.selectNewRegion
+selectNewRegion SelectionArgs{selectionMode = Area} =
+    Slurp.selectNewOrExistingRegion
+        =<< getAllNamedRegions'
+selectNewRegion SelectionArgs{selectionMode = Window} =
+    Slurp.selectRegion =<< getVisibleWindowRegions
 selectNewRegion SelectionArgs{selectionMode = Output} = Slurp.selectOutput
 selectNewRegion SelectionArgs{selectionMode = Screen} = getScreenRegion
+
+getAllNamedRegions' :: IO [Region]
+getAllNamedRegions' = region <$$> getAllNamedRegions
 
 getVisibleWindowRegions :: IO [Region]
 getVisibleWindowRegions =

@@ -35,6 +35,8 @@ The `--file` argument can also be given for other `sink` options, in which case 
 
 Selections can be saved and reused with the `--area-name` arguments. When an area name is first used, the user will have to make a selection. On subsequent uses, the saved area will be used automatically.
 
+The `--last-area` flag reuses whichever area was selected most recently, without prompting for a new selection.
+
 `capture` can be one of:
 - `screenshot` - make a screenshot of the selected region (default)
 - `video` - record a video of the selected region
@@ -42,6 +44,18 @@ Selections can be saved and reused with the `--area-name` arguments. When an are
 Capture can be delayed with the `--delay` argument, which accepts the number of seconds to wait for your make-up crew to finish.
 
 The duration of video recordings can be specified with the `--duration` argument, which accepts the number of seconds for the recording.
+
+The `--cursor` flag includes the mouse cursor in a screenshot.
+
+The `--audio` flag records audio along with a video; `--audio-device DEVICE` selects a specific input device (requires `--audio`).
+
+The `--format` argument selects the output format: `png` (default), `jpeg`, or `ppm` for screenshots; `mp4` (default) or `webm` for videos.
+
+The `--quality` argument sets the JPEG quality (0-100); it has no effect unless the format is `jpeg`.
+
+The `--scale` argument sets a scale factor for screenshots.
+
+The `--framerate` argument sets the framerate for video recordings.
 
 ### Examples
 
@@ -65,10 +79,10 @@ The currently supported window managers are
 ## Requirements
 
 guzzle looks for the following programs on the `PATH`:
-- `slurp` (the original inspiration for this project's name)
-- `grim`
-- `wl-recorder`
-- `wl-copy`
+- `slurp` the original inspiration for this project's name
+- `grim` for screenshots
+- `wl-recorder` for video
+- `wl-copy` for copy
 
 You don't have to worry about any of that if you use Nix.
 
