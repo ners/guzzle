@@ -11,8 +11,12 @@ guzzle does not try to do any of these things:
 ## Usage
 
 ```
+guzzle select [selection]
 guzzle [sink] [selection] [capture]
 ```
+
+`select` prints the selected area in `slurp` format (`X,Y WxH`) to stdout and exits, without capturing anything.
+
 `sink` can be one of:
 - `copy` - copy the contents to the clipboard (default)
 - `save` - save the contents to a file (default if `--file` is present)
@@ -67,3 +71,18 @@ guzzle looks for the following programs on the `PATH`:
 - `wl-copy`
 
 You don't have to worry about any of that if you use Nix.
+
+## Shell completion
+
+guzzle supports bash, zsh, and fish completion out of the box:
+
+```sh
+# bash (e.g. in ~/.bashrc)
+source <(guzzle --bash-completion-script "$(command -v guzzle)")
+
+# zsh (e.g. in ~/.zshrc)
+source <(guzzle --zsh-completion-script "$(command -v guzzle)")
+
+# fish (e.g. in ~/.config/fish/completions/guzzle.fish)
+guzzle --fish-completion-script "$(command -v guzzle)" | source
+```

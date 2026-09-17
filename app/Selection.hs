@@ -8,17 +8,6 @@ import Data.Either.Extra (eitherToMaybe)
 import Data.Foldable.Extra (firstJustM, for_)
 import Hyprctl qualified
 import Niri qualified
-import Options.Applicative
-    ( Parser
-    , argument
-    , help
-    , long
-    , maybeReader
-    , metavar
-    , optional
-    , strOption
-    , (<|>)
-    )
 import Persistence
     ( NamedRegion (..)
     , getAllRegions
@@ -38,40 +27,10 @@ data SelectionMode
     | Anything
     deriving stock (Eq, Bounded, Enum)
 
-parseSelectionMode :: Parser SelectionMode
-parseSelectionMode =
-    foldr1 @[]
-        (<|>)
-        [ modeArgument Area "area" "Select a region"
-        , modeArgument Window "window" "Select a visible window"
-        , modeArgument Output "output" "Select a visible display output"
-        , modeArgument Screen "screen" "All visible outputs"
-        , modeArgument Anything "anything" "Select a region, window, or output"
-        , pure Anything
-        ]
-  where
-    modeArgument
-        :: SelectionMode
-        -> String
-        -> String
-        -> Parser SelectionMode
-    modeArgument mode str helpStr = flip argument (metavar str <> help helpStr) . maybeReader $
-        \x -> if x == str then Just mode else Nothing
-
 data SelectionArgs = SelectionArgs
     { selectionMode :: SelectionMode
     , regionName :: Maybe Text
     }
-
-parseSelectionArgs :: Parser SelectionArgs
-parseSelectionArgs = do
-    selectionMode <- parseSelectionMode
-    regionName <-
-        optional . strOption $
-            long "area-name"
-                <> metavar "NAME"
-                <> help "Retrieve an existing area or store a new one called NAME"
-    pure SelectionArgs{..}
 
 selection :: SelectionArgs -> IO Region
 selection args@SelectionArgs{..} =

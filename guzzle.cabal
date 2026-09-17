@@ -48,6 +48,7 @@ executable guzzle
       -rtsopts
       -with-rtsopts=-N
   other-modules:
+      Args
       Capture
       Content
       Grim
