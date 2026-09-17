@@ -17,6 +17,7 @@ where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad ((<=<), (>=>))
+import Control.Monad.Extra (mconcatMapM)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson qualified as Aeson
 import Data.ByteString (ByteString)
@@ -45,6 +46,9 @@ infixl 4 <$$>
 
 (<$$>) :: (Functor f1, Functor f2) => (a -> b) -> f1 (f2 a) -> f1 (f2 b)
 (<$$>) = fmap . fmap
+
+mconcatM :: (Monad m, Monoid a) => [m a] -> m a
+mconcatM = mconcatMapM id
 
 ishow :: (Show a, IsString s) => a -> s
 ishow = fromString . show

@@ -48,12 +48,19 @@ selection args@SelectionArgs{..} = do
 selectNewRegion :: SelectionArgs -> IO Region
 selectNewRegion SelectionArgs{selectionMode = Anything} =
     Slurp.selectAnything
-        =<< liftA2 (<>) getVisibleWindowRegions getAllNamedRegions'
+        =<< mconcatM
+            [ getVisibleWindowRegions
+            , getAllNamedRegions'
+            , getLastRegion'
+            ]
 selectNewRegion SelectionArgs{selectionMode = Area, areaSelector = ByName{}} =
     Slurp.selectNewRegion
 selectNewRegion SelectionArgs{selectionMode = Area} =
     Slurp.selectNewOrExistingRegion
-        =<< getAllNamedRegions'
+        =<< mconcatM
+            [ getAllNamedRegions'
+            , getLastRegion'
+            ]
 selectNewRegion SelectionArgs{selectionMode = Window} =
     Slurp.selectRegion =<< getVisibleWindowRegions
 selectNewRegion SelectionArgs{selectionMode = Output} = Slurp.selectOutput
@@ -61,6 +68,9 @@ selectNewRegion SelectionArgs{selectionMode = Screen} = getScreenRegion
 
 getAllNamedRegions' :: IO [Region]
 getAllNamedRegions' = region <$$> getAllNamedRegions
+
+getLastRegion' :: IO [Region]
+getLastRegion' = maybeToList <$> getLastRegion
 
 getVisibleWindowRegions :: IO [Region]
 getVisibleWindowRegions =
