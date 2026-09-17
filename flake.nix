@@ -24,6 +24,7 @@
       pname = "guzzle";
       runtimeDependenciesFor = pkgs: with pkgs; [
         grim
+        libnotify
         slurp
         wf-recorder
         wl-clipboard

@@ -54,6 +54,7 @@ executable guzzle
       Grim
       Hyprctl
       Niri
+      Notify
       Persistence
       Prelude
       Region

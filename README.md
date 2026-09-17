@@ -57,6 +57,8 @@ The `--scale` argument sets a scale factor for screenshots.
 
 The `--framerate` argument sets the framerate for video recordings.
 
+When a capture finishes, guzzle sends a desktop notification via `notify-send`. This is best-effort and silently skipped if `notify-send` is unavailable. Set `GUZZLE_NOTIFY=0` to disable these notifications entirely.
+
 ### Examples
 
 ```
@@ -83,6 +85,7 @@ guzzle looks for the following programs on the `PATH`:
 - `grim` for screenshots
 - `wl-recorder` for video
 - `wl-copy` for copy
+- `notify-send` for desktop notifications
 
 You don't have to worry about any of that if you use Nix.
 
