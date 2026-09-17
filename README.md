@@ -86,6 +86,10 @@ guzzle looks for the following programs on the `PATH`:
 
 You don't have to worry about any of that if you use Nix.
 
+## Debugging
+
+By default guzzle runs silently. Set the `GUZZLE_DEBUG` environment variable to print the commands guzzle runs, along with other diagnostic logs, to stderr.
+
 ## Shell completion
 
 guzzle supports bash, zsh, and fish completion out of the box:

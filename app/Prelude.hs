@@ -16,8 +16,8 @@ module Prelude
 where
 
 import Control.Concurrent (threadDelay)
-import Control.Monad ((<=<), (>=>))
-import Control.Monad.Extra (mconcatMapM)
+import Control.Monad (when, (<=<), (>=>))
+import Control.Monad.Extra (mconcatMapM, whenM)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson qualified as Aeson
 import Data.ByteString (ByteString)
@@ -36,6 +36,7 @@ import Data.Text.Encoding qualified as Text
 import Data.Text.IO qualified as Text
 import GHC.Generics (Generic)
 import System.Console.ANSI
+import System.Environment (lookupEnv)
 import System.Exit (exitFailure, exitWith)
 import System.IO (hPutStr, stderr)
 import System.Process.Typed (ExitCode (..), StreamSpec, nullStream)
@@ -65,6 +66,9 @@ printError t = do
     Text.hPutStrLn stderr t
     hSetSGR stderr [Reset]
 
+isDebug :: IO Bool
+isDebug = isJust <$> lookupEnv "GUZZLE_DEBUG"
+
 printWarn :: Text -> IO ()
 printWarn t = do
     hSetSGR stderr [SetColor Foreground Vivid Yellow]
@@ -78,7 +82,7 @@ printInfo t = do
     hSetSGR stderr [Reset]
 
 printDebug :: Text -> IO ()
-printDebug t = do
+printDebug t = whenM isDebug do
     hSetSGR stderr [SetColor Foreground Dull Magenta]
     Text.hPutStrLn stderr t
     hSetSGR stderr [Reset]
@@ -91,7 +95,7 @@ cmd'
     -> StreamSpec 'Process.STInput ()
     -> IO (ExitCode, LazyByteString, LazyByteString)
 cmd' (x :| xs) input = do
-    printInfo $ Text.unwords (x : xs)
+    printDebug $ Text.unwords (x : xs)
     (exitCode, out, err) <-
         Process.readProcess . Process.setStdin input $
             Process.proc (Text.unpack x) (Text.unpack <$> xs)
@@ -114,7 +118,7 @@ jsonCmd xs input =
 
 cmd_ :: NonEmpty Text -> StreamSpec 'Process.STInput () -> IO ()
 cmd_ (x :| xs) input = do
-    printInfo $ Text.unwords (x : xs)
+    printDebug $ Text.unwords (x : xs)
     Process.runProcess_ . Process.setStdin input $
         Process.proc (Text.unpack x) (Text.unpack <$> xs)
 

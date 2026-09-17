@@ -1,7 +1,6 @@
 module Sink where
 
 import Content
-import Control.Monad (when)
 import Data.ByteString.Lazy qualified as LazyByteString
 import Data.Time (getCurrentTime)
 import Data.Time.Format.ISO8601
