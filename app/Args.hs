@@ -3,6 +3,7 @@ module Args where
 import Capture
 import Content (formatFromExtension)
 import Data.Bifunctor (first)
+import Data.Either (partitionEithers)
 import Data.Foldable (toList)
 import Data.List (intercalate, nub)
 import Data.List.NonEmpty qualified as NonEmpty
@@ -63,25 +64,33 @@ kindHelp kind = description <> " (also: " <> intercalate ", " others <> ")"
         Region.Output -> "Select a visible display output"
         Region.Screen -> "All visible outputs"
 
-parseMode :: Parser Selection.Mode
-parseMode =
-    fromMaybe Selection.anything . NonEmpty.nonEmpty . nub . concat
-        <$> many parseKind
+parseKind :: Parser [Region.Kind]
+parseKind =
+    foldr1 @[] (<|>) $
+        (kindParser <$> [minBound .. maxBound])
+            <> [ literal
+                    (toList Selection.anything)
+                    ["anything"]
+                    "Select a region, window, or output"
+               ]
   where
-    parseKind =
-        foldr1 @[] (<|>) $
-            (kindParser <$> [minBound .. maxBound])
-                <> [ literal
-                        (toList Selection.anything)
-                        ["anything"]
-                        "Select a region, window, or output"
-                   ]
     kindParser :: Region.Kind -> Parser [Region.Kind]
     kindParser kind =
         literal
             [kind]
             (Text.unpack <$> Region.aliases kind)
             (kindHelp kind)
+
+modeOf :: [[Region.Kind]] -> Selection.Mode
+modeOf = fromMaybe Selection.anything . NonEmpty.nonEmpty . nub . concat
+
+parseMode :: Parser Selection.Mode
+parseMode = modeOf <$> many parseKind
+
+parsePositionals :: Parser (Selection.Mode, [CaptureAction])
+parsePositionals =
+    first modeOf . partitionEithers
+        <$> many (Left <$> parseKind <|> Right <$> parseCaptureWord)
 
 parseAreaSelector :: Parser Selection.AreaSelector
 parseAreaSelector =
@@ -124,9 +133,8 @@ parseSelectFormat = do
                 (Text.unpack (NonEmpty.head $ Region.aliases kind) <> "-format")
                 "Like --format, but only for items of this kind"
 
-parseSelectionArgs :: Parser SelectionArgs
+parseSelectionArgs :: Parser (Selection.Mode -> SelectionArgs)
 parseSelectionArgs = do
-    mode <- parseMode
     areaSelector <- parseAreaSelector
     every <-
         switch $
@@ -135,25 +143,20 @@ parseSelectionArgs = do
     noHistory <-
         switch $
             long "no-history" <> help "Do not store or recall saved areas"
-    pure SelectionArgs{..}
+    pure $ \mode -> SelectionArgs{..}
 
-parseCaptureAction :: Parser CaptureAction
-parseCaptureAction =
-    foldr1 @[]
-        (<|>)
-        [ literal Screenshot ["screenshot"] "Make a screenshot of the selected region"
-        , literal Video ["video"] "Record a video of the selected region"
-        , pure Screenshot
-        ]
+parseCaptureWord :: Parser CaptureAction
+parseCaptureWord =
+    literal Screenshot ["screenshot"] "Make a screenshot of the selected region"
+        <|> literal Video ["video"] "Record a video of the selected region"
 
 positive :: String -> Either String Double
 positive s = case reads s of
     [(factor, "")] | factor > 0 -> Right factor
     _ -> Left "must be a number greater than 0"
 
-parseCaptureArgs :: Parser CaptureArgs
+parseCaptureArgs :: Parser (CaptureAction -> CaptureArgs)
 parseCaptureArgs = do
-    captureAction <- parseCaptureAction
     delay <-
         optional . option auto $
             long "delay" <> metavar "T" <> help "Delay the capture by T seconds"
@@ -185,7 +188,7 @@ parseCaptureArgs = do
     (audio, audioDevice) <-
         maybe (False, Nothing) (True,)
             <$> optional (audioFlag *> optional audioDeviceOption)
-    pure CaptureArgs{..}
+    pure $ \captureAction -> CaptureArgs{..}
   where
     audioFlag :: Parser ()
     audioFlag = flag' () $ long "audio" <> help "Record audio with the video"
@@ -206,22 +209,45 @@ parseVerbosity =
         <|> flag' Trace (long "debug" <> help "Print executed commands")
         <|> pure Info
 
-parseArgs :: Parser (Verbosity, Args)
+parseRun :: Parser (Either String Args)
+parseRun = do
+    sinkArgs <- parseSinkArgs
+    ~(mode, actions) <- parsePositionals
+    selection <- parseSelectionArgs
+    captureArgs <- parseCaptureArgs
+    pure $ do
+        captureAction <- case actions of
+            [] -> Right Screenshot
+            [only] -> Right only
+            _ -> Left "Only one of screenshot or video may be given"
+        Right $ Run sinkArgs (selection mode) (captureArgs captureAction)
+
+parseArgs :: Parser (Verbosity, Either String Args)
 parseArgs =
     (,)
         <$> parseVerbosity
         <*> ( hsubparser
                 ( command "select" $
                     info
-                        (Select <$> parseSelectionArgs <*> parseSelectFormat)
+                        ( fmap Right $
+                            Select
+                                <$> (parseSelectionArgs <*> parseMode)
+                                <*> parseSelectFormat
+                        )
                         (fullDesc <> progDesc "Print the selected area and exit")
                 )
-                <|> (Run <$> parseSinkArgs <*> parseSelectionArgs <*> parseCaptureArgs)
+                <|> parseRun
             )
         <* simpleVersioner ("guzzle " <> showVersion Paths_guzzle.version)
 
-parserInfo :: ParserInfo (Verbosity, Args)
+parserInfo :: ParserInfo (Verbosity, Either String Args)
 parserInfo = info (parseArgs <**> helper) fullDesc
 
 runParser :: IO (Verbosity, Args)
-runParser = customExecParser defaultPrefs{prefBacktrack = Backtrack} parserInfo
+runParser = do
+    (level, parsed) <- customExecParser prefs' parserInfo
+    args <- either (handleParseResult . Failure . failure) pure parsed
+    pure (level, args)
+  where
+    prefs' = defaultPrefs{prefBacktrack = Backtrack}
+    failure = flip (parserFailure prefs' parserInfo) mempty . ErrorMsg

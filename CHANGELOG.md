@@ -1,5 +1,10 @@
 # Revision history for guzzle
 
+## 0.4.0.0 -- 2026-10-25
+
+* Fix `screenshot` and `video` being rejected after a selection kind.
+* Reject giving both `screenshot` and `video`.
+
 ## 0.3.0.0 -- 2026-10-10
 
 * Add `--all` to select every candidate of the chosen kind.
